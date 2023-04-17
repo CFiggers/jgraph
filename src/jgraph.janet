@@ -8,6 +8,11 @@
           :in      :table
           :attrs   :table)))
 
+(def node-schema :tested
+  (schema/predicate
+   (and (pred indexed?)
+        (length 2))))
+
 (def Graph
   :graph
   @{:nodeset @[]
@@ -41,6 +46,9 @@
   ~(and ((metadata ,g) :graph)
         (graph-schema ((dyn ',g) :value))))
 
+(defn node? :tested [node]
+  (node-schema node))
+
 (defmacro digraph? :tested [g]
   ~(and ((metadata ,g) :graph)
         ((metadata ,g) :digraph)
@@ -50,6 +58,35 @@
   ~(and ((metadata ,g) :graph)
         ((metadata ,g) :weighted)
         (graph-schema (table/proto-flatten ((dyn ',g) :value)))))
+
+(defmacro nodes :tested [g] 
+  ~(((dyn ',g) :value) :nodeset))
+
+(defn- member-node? [g node]
+  (truthy? (index-of (nodes g) node)))
+
+(defn successors [& args])
+
+(defn out-edges 
+  ``Returns a tuple of all edges that go out from the
+  provided `node`. Node must be a member of the provided
+  graph `g`.``
+  [g node]
+  (assert (graph? g)) 
+  (assert (node? node))
+  (assert (member-node? g node))
+  (seq [to-node :in (successors g node)]
+       [node to-node]))
+
+(defn edges 
+  ``Iterates all nodes in a graph `g` and returns the
+  full set of all edges from each node to all of its
+  successor nodes.``
+  [g]
+  (assert (graph? g) "Argument must be a graph.")
+  (seq [node :in (nodes g)]
+       (seq [edge :in (out-edges g node)]
+            edge)))
 
 (comment
   (defgraph "mygraph-2")

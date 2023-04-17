@@ -1,92 +1,137 @@
 (use judge)
 (import spork/schema)
+(use /src/utils)
 
 (def graph-schema :tested
   (schema/predicate 
-   (props :nodeset :array
-          :adj     :table
-          :in      :table
-          :attrs   :table)))
+   (props :metadata :table
+          :nodeset  :table
+          :adj      :table
+          :in       :table
+          :attrs    :table)))
 
-(def node-schema :tested
+(def edge-schema :tested
   (schema/predicate
    (and (pred indexed?)
         (length 2))))
 
-(def Graph
-  :graph
-  @{:nodeset @[]
-    :adj     @{}
-    :in      @{}
-    :attrs   @{}})
+(def weighted-edge-schema :tested
+  (schema/predicate
+   (and (pred indexed?)
+        (length 3)
+        (pred |(= (type (last $)) :number)))))
 
-(defmacro metadata :tested [x]
-  (assert (not (nil? x)) "graph was nil")
-  ~(-> (table/clone (dyn ',x))
-       (put :source-map nil)
-       (put :value nil)))
+(def node-schema :tested
+  (schema/predicate
+   (and (pred indexed?)
+        (or (pred edge-schema)
+            (pred weighted-edge-schema)))))
 
-(defmacro defgraph :tested [s]
-  (assert (index-of (type s) [:string :buffer])
-          "defgraph requires a string")
-  ~(do (def ,(symbol s) :graph 
-         (table/setproto @{} Graph)) 
-       (setdyn ',(symbol s) (table/setproto 
-                             @{:value ,(symbol s)
-                               :graph true}
-                             Graph))))
+(def Graph 
+  {:metadata @{:graph true}
+   :nodeset  @{}
+   :adj      @{}
+   :in       @{}
+   :attrs    @{}})
 
-(defmacro make-digraph! :tested [g]
-  ~(put (dyn ',g) :digraph true))
+(defn graph? :tested [g]
+  (and (graph-schema g)
+       ((g :metadata) :graph)))
 
-(defmacro make-weighted! :tested [g]
-  ~(put (dyn ',g) :weighted true))
+(defn metadata :tested [g]
+  (g :metadata))
 
-(defmacro graph? :tested [g]
-  ~(and ((metadata ,g) :graph)
-        (graph-schema ((dyn ',g) :value))))
+(defn defgraph :tested [&opt ingraph] 
+  (when ingraph (assert (graph? ingraph) "optional argument to `defgraph` must be a valid graph"))
+  (default ingraph @{})
+  (merge (deep-clone (struct/to-table Graph)) ingraph))
+
+(defn make-digraph! :tested [g]
+  (put (g :metadata) :digraph true))
+
+(defn make-weighted! :tested [g &opt weight]
+  (default weight 0)
+  (put (g :metadata) :weighted true)
+  (each key [:adj :in] 
+        (each edge (g key) 
+              (each key (keys edge) 
+                    (update edge key |(if (= (type $) :number) $ weight))))))
+
+(update @[:a :b] 2 |(or $ "this"))
 
 (defn node? :tested [node]
   (node-schema node))
 
-(defmacro digraph? :tested [g]
-  ~(and ((metadata ,g) :graph)
-        ((metadata ,g) :digraph)
-        (graph-schema (table/proto-flatten ((dyn ',g) :value)))))
+(defn digraph? :tested [g]
+  (and ((metadata g) :graph)
+       ((metadata g) :digraph)
+       (graph-schema g)))
 
-(defmacro weighted? :tested [g]
-  ~(and ((metadata ,g) :graph)
-        ((metadata ,g) :weighted)
-        (graph-schema (table/proto-flatten ((dyn ',g) :value)))))
+(defn weighted? :tested [g]
+  (and ((metadata g) :graph)
+       ((metadata g) :weighted)
+       (graph-schema g)))
 
-(defmacro nodes :tested [g] 
-  ~(((dyn ',g) :value) :nodeset))
+(defn nodes :tested [g] 
+  (g :nodeset))
 
-(defn- member-node? [g node]
-  (truthy? (index-of (nodes g) node)))
+(defn add-nodes :tested [g & nodes]
+  (each node nodes
+        (put (g :nodeset) node true))
+  g)
 
-(defn successors [& args])
+(defn member-node? :tested [g node]
+  (truthy? ((nodes g) node)))
+
+(defn successors [g node]
+  (keys (get-in g [:adj node])))
 
 (defn out-edges 
   ``Returns a tuple of all edges that go out from the
   provided `node`. Node must be a member of the provided
   graph `g`.``
   [g node]
-  (assert (graph? g)) 
-  (assert (node? node))
-  (assert (member-node? g node))
+  (assert (graph? g) "First argument to `edges` must be a valid graph.") 
+  (assert (node? node) "Second argument to `edges` must be a valid node.")
+  (assert (member-node? g node) "Provided node is not a member of provided graph.")
   (seq [to-node :in (successors g node)]
        [node to-node]))
 
 (defn edges 
   ``Iterates all nodes in a graph `g` and returns the
-  full set of all edges from each node to all of its
-  successor nodes.``
+  full set of all edges from each node to each of that 
+  node's successor nodes.``
   [g]
-  (assert (graph? g) "Argument must be a graph.")
+  (assert (graph? g) "Argument to `edges` must be a valid graph.")
   (seq [node :in (nodes g)]
        (seq [edge :in (out-edges g node)]
             edge)))
+
+(defn add-edges [g & edges]
+  (assert (graph? g) "First argument to `add-edges` must be a valid graph.")
+  (each edge edges
+        (if (weighted? g)
+          (assert (weighted-edge-schema edge) "All edges passed to `add-edges` with a weighted graph must be valid weighted edges.")
+          (assert (edge-schema edge) "All edges passed to `add-edges` must be valid edges.")))
+  (reduce (fn [g [n1 n2 n3]]
+            (let [weighted (weighted? g)
+                  content (if weighted n3 true)]
+              (when weighted (assert n3) "Provide a weight for edges in a weighted graph.")
+              (add-nodes g n1 n2)
+              (put-in g [:adj n1 n2] content)
+              (if (digraph? g)
+                (put-in g [:in n2 n1] content)      
+                (put-in g [:adj n2 n1] content))))
+          g edges))
+
+
+# (defn add-edges [g & edges]
+#   (each edge edges
+#         (assert (edge-schema edge)))
+#   (reduce (fn [g [n1 n2]]
+#             (-> g 
+#                 (add-nodes n1 n2)
+#                 ()))))
 
 (comment
   (defgraph "mygraph-2")

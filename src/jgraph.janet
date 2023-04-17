@@ -15,7 +15,7 @@
     :in      @{}
     :attrs   @{}})
 
-(defmacro metadata [x]
+(defmacro metadata :tested [x]
   (assert (not (nil? x)) "graph was nil")
   ~(-> (table/clone (dyn ',x))
        (put :source-map nil)
@@ -26,8 +26,10 @@
           "defgraph requires a string")
   ~(do (def ,(symbol s) :graph 
          (table/setproto @{} Graph)) 
-       (setdyn ',(symbol s) @{:value ,(symbol s)
-                              :graph true})))
+       (setdyn ',(symbol s) (table/setproto 
+                             @{:value ,(symbol s)
+                               :graph true}
+                             Graph))))
 
 (defmacro make-digraph! :tested [g]
   ~(put (dyn ',g) :digraph true))

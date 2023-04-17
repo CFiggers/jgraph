@@ -40,18 +40,20 @@
   (test (graph-schema test-graph) nil))
 
 (deftest-g "node-schema"
-  (test (node-schema @[:a :b])          true)
-  (test (node-schema @[:a :b :c])       false)
-  (test (node-schema {:x 1 :y 2})       nil)
+  (test (node-schema :a)                true)
+  (test (node-schema @[:a :b :c])       true)
+  (test (node-schema {:x 1 :y 2})       true)
   (test (node-schema @["here" "there"]) true)
-  (test (node-schema @[:a @[:c :d]])    true))
+  (test (node-schema @[:a @[:c :d]])    true)
+  (test (node-schema false)             false)
+  (test (node-schema nil)               false))
 
-(deftest-g "edge-schema"
-  (test (edge-schema @[:a :b])          true)
-  (test (edge-schema @[:a :b :c])       false)
-  (test (edge-schema {:x 1 :y 2})       nil)
-  (test (edge-schema @["here" "there"]) true)
-  (test (edge-schema @[:a @[:c :d]])    true))
+(deftest-g "unweighted-edge-schema"
+  (test (unweighted-edge-schema @[:a :b])          true)
+  (test (unweighted-edge-schema @[:a :b :c])       false)
+  (test (unweighted-edge-schema {:x 1 :y 2})       nil)
+  (test (unweighted-edge-schema @["here" "there"]) true)
+  (test (unweighted-edge-schema @[:a @[:c :d]])    true))
 
 (deftest-g "weighted-edge-schema"
   (test (weighted-edge-schema @[:a :b])             nil)
@@ -61,6 +63,16 @@
   (test (weighted-edge-schema @["here" "there"])    nil)
   (test (weighted-edge-schema @["here" "there" 50]) true)
   (test (weighted-edge-schema @[:a @[:c :d]])       nil))
+
+(deftest-g "edge-schema"
+  (test (edge-schema :a)                false)
+  (test (edge-schema @[:a :b :c])       false)
+  (test (edge-schema @[:a :b 15])       true)
+  (test (edge-schema {:x 1 :y 2})       false)
+  (test (edge-schema @["here" "there"]) true)
+  (test (edge-schema @[:a @[:c :d]])    true)
+  (test (edge-schema false)             false)
+  (test (edge-schema nil)               false))
 
 (deftest-g "graph?"
   (test (graph? Graph)  true)
@@ -122,12 +134,12 @@
 
 (deftest-g "node?"
   (test (node? @[:a :b])          true)
-  (test (node? @[:a :b :c])       false)
-  (test (node? {:x 1 :y 2})       nil)
+  (test (node? @[:a :b :c]) true)
+  (test (node? {:x 1 :y 2}) true)
   (test (node? @["here" "there"]) true)
   (test (node? @[:a @[:c :d]])    true)
   (test (node? @[:a :b 50])       true)
-  (test (node? @[:a :b :c])       false))
+  (test (node? @[:a :b :c]) true))
 
 (deftest-g "digraph?"
   (def test-graph (defgraph))
@@ -144,9 +156,9 @@
   (test (weighted? test-graph)            true))
 
 (deftest-g "nodes"
-  (test (nodes Graph) @{})
+  (test (nodes Graph) @[])
   (def test-graph (defgraph))
-  (test (nodes test-graph) @{}))
+  (test (nodes test-graph) @[]))
 
 (deftest-g "add-nodes"
   (def test-graph (defgraph))
@@ -168,9 +180,73 @@
   (test (member-node? test-graph ["a" "b"]) true)
   (test (member-node? test-graph :d) false))
 
-(deftest-g "out-edges")
+(deftest "successors"
+  (def test-graph (defgraph))
+  (add-edges test-graph [:a :b] [:a :c])
+  (test (successors test-graph :a) @[:c :b]))
 
-(deftest-g "edges")
+(deftest "successors, none to find"
+  (def test-graph (defgraph))
+  (add-nodes test-graph :a :b)
+  (test (successors test-graph :a) @[]))
+
+(deftest-g "out-edges, fails if `g` is not a valid graph"
+  (test-error (out-edges :fails :a) "First argument to `edges` must be a valid graph."))
+
+(deftest-g "out-edges, fails if `node` not member of `g`"
+  (def test-graph (defgraph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test-error (out-edges test-graph :d) "Provided node is not a member of provided graph."))
+
+(deftest-g "out-edges"
+  (def test-graph (defgraph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test (out-edges test-graph :a) @[[:a :c] [:a :b]])
+  (test (out-edges test-graph :c) @[[:c :a] [:c :b]]))
+
+(deftest-g "out-edges, none"
+  (def test-graph (defgraph))
+  (add-nodes test-graph :a)
+  (test (out-edges test-graph :a) @[]))
+
+(deftest "out-edges, digraph"
+  (def test-graph (defgraph))
+  (make-digraph! test-graph)
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test (out-edges test-graph :a) @[[:a :c] [:a :b]])
+  (test (out-edges test-graph :c) @[]))
+
+(deftest-g "edges, fails if graph `g` is not a valid graph"
+  (test-error (edges :fails) "Argument to `edges` must be a valid graph."))
+
+(deftest-g "edges, none"
+  (def test-graph (defgraph))
+  (add-nodes test-graph :a :b)
+  (test (edges test-graph) @[]))
+
+(deftest-g "edges"
+  (def test-graph (defgraph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test (edges test-graph) @[[:c :a] [:c :b] [:a :c] [:a :b] [:b :c] [:b :a]]))
+
+(deftest "edges, digraph"
+  (def test-graph (defgraph))
+  (make-digraph! test-graph)
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test (edges test-graph) @[[:a :c] [:a :b] [:b :c]]))
+
+(deftest "edges, weighted graph"
+  (def test-graph (defgraph))
+  (make-weighted! test-graph)
+  (add-edges test-graph [:a :b 5] [:b :c 6] [:a :c 7])
+  (test (edges test-graph) @[[:c :a] [:c :b] [:a :c] [:a :b] [:b :c] [:b :a]]))
+
+(deftest "edges, weighted digraph"
+  (def test-graph (defgraph))
+  (make-digraph! test-graph)
+  (make-weighted! test-graph)
+  (add-edges test-graph [:a :b 7] [:b :c 8] [:a :c 9])
+  (test (edges test-graph) @[[:a :c] [:a :b] [:b :c]]))
 
 (deftest-g "add-edges, fails if bad graph"
   (test-error (add-edges :fails [:a :b]) "First argument to `add-edges` must be a valid graph."))
@@ -218,11 +294,6 @@
   (make-weighted! test-weighted-digraph)
   (test (metadata test-weighted-digraph) @{:digraph true :graph true :weighted true})
   (test (add-edges test-weighted-digraph [:a :b 50] [:a :c 100]) @{:adj @{:a @{:b 50 :c 100}} :attrs @{} :in @{:b @{:a 50} :c @{:a 100}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{:a true :b true :c true}}))
-
-(deftest "successors"
-  (def test-graph (defgraph))
-  (add-nodes test-graph [:a :b :c])
-  (add-edges test-graph [:a :b] [:a :c]))
 
 (deftest final-time
   (print "Elapsed time: " (- (os/clock) start) " seconds"))

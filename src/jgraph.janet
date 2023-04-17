@@ -10,7 +10,7 @@
           :in       :table
           :attrs    :table)))
 
-(def edge-schema :tested
+(def unweighted-edge-schema :tested
   (schema/predicate
    (and (pred indexed?)
         (length 2))))
@@ -21,11 +21,14 @@
         (length 3)
         (pred |(= (type (last $)) :number)))))
 
+(def edge-schema :tested
+  (schema/predicate
+   (or (pred unweighted-edge-schema)
+       (pred weighted-edge-schema))))
+
 (def node-schema :tested
   (schema/predicate
-   (and (pred indexed?)
-        (or (pred edge-schema)
-            (pred weighted-edge-schema)))))
+   (pred truthy?)))
 
 (def Graph 
   {:metadata @{:graph true}
@@ -53,10 +56,10 @@
   (default weight 0)
   (put (g :metadata) :weighted true)
   (each key [:adj :in] 
-        (each edge (g key) 
-              (each key (keys edge) 
-                    (update edge key 
-                            |(if (= (type $) :number) $ weight))))))
+    (each edge (g key) 
+      (each key (keys edge) 
+        (update edge key 
+                |(if (= (type $) :number) $ weight))))))
 
 (defn node? :tested [node]
   (node-schema node))
@@ -72,46 +75,45 @@
        (graph-schema g)))
 
 (defn nodes :tested [g] 
-  (g :nodeset))
+  (keys (g :nodeset)))
 
 (defn add-nodes :tested [g & nodes]
-  (each node nodes
-        (put (g :nodeset) node true))
+  (each node nodes 
+    (put (g :nodeset) node true))
   g)
 
-(defn member-node? :tested [g node]
-  (truthy? ((nodes g) node)))
+(defn member-node? :tested [g node] 
+  (truthy? (index-of node (nodes g))))
 
-(defn successors [g node]
-  (keys (get-in g [:adj node])))
+(defn successors :tested [g node]
+  (keys (get-in g [:adj node] @{})))
 
-(defn out-edges 
+(defn out-edges :tested
   ``Returns a tuple of all edges that go out from the
   provided `node`. Node must be a member of the provided
   graph `g`.``
   [g node]
   (assert (graph? g) "First argument to `edges` must be a valid graph.") 
-  (assert (node? node) "Second argument to `edges` must be a valid node.")
   (assert (member-node? g node) "Provided node is not a member of provided graph.")
   (seq [to-node :in (successors g node)]
        [node to-node]))
 
-(defn edges 
-  ``Iterates all nodes in a graph `g` and returns the
-  full set of all edges from each node to each of that 
-  node's successor nodes.``
+(defn edges :tested
+  ``Iterates all nodes in a graph `g `and returns the
+  full set of all edges from each node to each of that
+  node's successor nodes. ``
   [g]
   (assert (graph? g) "Argument to `edges` must be a valid graph.")
-  (seq [node :in (nodes g)]
-       (seq [edge :in (out-edges g node)]
-            edge)))
+  (seq [node :in (nodes g)] 
+    ;(seq [edge :in (out-edges g node)] 
+       edge)))
 
 (defn add-edges [g & edges]
   (assert (graph? g) "First argument to `add-edges` must be a valid graph.")
   (each edge edges
-        (if (weighted? g)
-          (assert (weighted-edge-schema edge) "All edges passed to `add-edges` with a weighted graph must be valid weighted edges.")
-          (assert (edge-schema edge) "All edges passed to `add-edges` must be valid edges.")))
+    (if (weighted? g)
+      (assert (weighted-edge-schema edge) "All edges passed to `add-edges` with a weighted graph must be valid weighted edges.")
+      (assert (edge-schema edge) "All edges passed to `add-edges` must be valid edges.")))
   (reduce (fn [g [n1 n2 n3]]
             (let [weighted (weighted? g)
                   content (if weighted n3 true)]

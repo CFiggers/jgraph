@@ -79,6 +79,11 @@
   (def test-graph (defgraph))
   (test (graph? test-graph) true))
 
+(deftest-g "graph?, not a graph" 
+  (test (graph? @{}) nil)
+  (test (graph? "not a graph") nil)
+  (test (graph? @[:a :b :c]) nil))
+
 (deftest-g "metadata"
   (def test-graph (defgraph))
   (test (metadata test-graph) @{:graph true})
@@ -106,7 +111,7 @@
   (def test-graph-1 (defgraph))
   (add-edges test-graph-1 [:a :b] [:b :c] [:b :d])
   (make-weighted! test-graph-1)
-  (test test-graph-1 @{:adj @{ :a @{:b 0} :b @{:a 0 :c 0 :d 0} :c @{:b 0} :d @{:b 0}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{ :a true :b true :c true :d true}})) 
+  (test test-graph-1 @{:adj @{ :a @{:b 1} :b @{:a 1 :c 1 :d 1} :c @{:b 1} :d @{:b 1}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{ :a true :b true :c true :d true}})) 
 
 (deftest "make-weighted!, existing unweighted, weight supplied"
   (def test-graph-2 (defgraph))
@@ -123,7 +128,7 @@
   (make-digraph! test-graph-1)
   (add-edges test-graph-1 [:a :b] [:b :c] [:b :d])
   (make-weighted! test-graph-1) 
-  (test test-graph-1 @{:adj @{:a @{:b 0} :b @{:c 0 :d 0}} :attrs @{} :in @{:b @{:a 0} :c @{:b 0} :d @{:b 0}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{ :a true :b true :c true :d true}}))
+  (test test-graph-1 @{:adj @{:a @{:b 1} :b @{:c 1 :d 1}} :attrs @{} :in @{:b @{:a 1} :c @{:b 1} :d @{:b 1}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{ :a true :b true :c true :d true}}))
 
 (deftest-g "make-weighted!, existing unweighted digraph, weight supplied"
   (def test-graph-1 (defgraph))
@@ -148,6 +153,11 @@
   (test ((metadata test-graph) :digraph) true)
   (test (digraph? test-graph)            true))
 
+(deftest-g "digraph?, not a graph"
+  (test (digraph? "not a graph, should fail") false)
+  (test (digraph? @{}) nil)
+  (test (digraph? @[:a :b :c]) false))
+
 (deftest-g "weighted?"
   (def test-graph (defgraph))
   (test ((metadata test-graph) :weighted) nil)
@@ -169,7 +179,40 @@
                      :metadata @{:graph true} 
                      :nodeset @{ 1 true 2 true 3 true "c" true :a true :b true :c true ["a" "b"] true}}))
 
-(deftest-g "member-node?"
+(deftest "remove-adj-nodes"
+  (def test-graph (defgraph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (remove-adj-nodes test-graph [:a] [:b :c])
+  (test test-graph @{:adj @{:a @{:b true :c true} :b @{:c true} :c @{:b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}))
+
+(deftest "remove-nodes, not passed a graph"
+  (test-error (remove-nodes @{} :fails) "Input graph `g` must be a valid graph."))
+
+(deftest "remove-nodes, not in list"
+  (def test-graph (defgraph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (remove-nodes test-graph :a)
+  (test test-graph @{:adj @{:b @{:c true} :c @{:b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:b true :c true}}))
+
+(deftest "remove-nodes, in a list"
+  (def test-graph (defgraph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test (remove-nodes test-graph [:a]) @{:adj @{:b @{:c true} :c @{:b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:b true :c true}})
+  (test test-graph @{:adj @{:b @{:c true} :c @{:b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:b true :c true}}))
+
+(deftest "remove-nodes, not in list"
+  (def test-graph (defgraph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test (remove-nodes test-graph :a :c) @{:adj @{:b @{}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:b true}})
+  (test test-graph @{:adj @{:b @{}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:b true}}))
+
+(deftest "remove-nodes, in a list"
+  (def test-graph (defgraph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (remove-nodes test-graph [:a :c])
+  (test test-graph @{:adj @{:b @{}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:b true}}))
+
+(deftest-g "has-node?"
   (def test-graph (defgraph))
   (add-nodes test-graph :a :b :c 1 2 3 ["a" "b"] "c")
   (test test-graph @{:adj @{} 
@@ -177,18 +220,56 @@
                      :in @{} 
                      :metadata @{:graph true} 
                      :nodeset @{ 1 true 2 true 3 true "c" true :a true :b true :c true ["a" "b"] true}})
-  (test (member-node? test-graph ["a" "b"]) true)
-  (test (member-node? test-graph :d) false))
+  (test (has-node? test-graph ["a" "b"]) true)
+  (test (has-node? test-graph :d) false))
 
-(deftest "successors"
+(deftest-g "has-edge?"
+  (def test-graph (defgraph))
+  (add-edges test-graph [:a :b] [:a :c])
+  (test (has-edge? test-graph [:a :c]) true)
+  (test (has-edge? test-graph [:b :c]) false))
+
+(deftest-g "has-edge?, digraph"
+  ((def test-graph (defgraph))
+  (make-digraph! test-graph))
+  (add-edges test-graph [:a :b] [:a :c])
+  (test (has-edge? test-graph [:a :c]) true)
+  (test (has-edge? test-graph [:b :c]) false))
+
+(deftest-g "has-edge?, weighted graph"
+  (def test-graph (defgraph))
+  (make-weighted! test-graph)
+  (add-edges test-graph [:a :b 10] [:a :c 20])
+  (test (has-edge? test-graph [:a :c]) true)
+  (test (has-edge? test-graph [:b :c]) false))
+
+(deftest-g "has-edge?, weighted digraph"
+  ((def test-graph (defgraph))
+  (make-digraph! test-graph))
+  (make-weighted! test-graph)
+  (add-edges test-graph [:a :b 100] [:a :c 200])
+  (test (has-edge? test-graph [:a :c]) true)
+  (test (has-edge? test-graph [:b :c]) false))
+
+(deftest-g "successors"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:a :c])
   (test (successors test-graph :a) @[:c :b]))
 
-(deftest "successors, none to find"
+(deftest-g "successors, none to find"
   (def test-graph (defgraph))
   (add-nodes test-graph :a :b)
   (test (successors test-graph :a) @[]))
+
+(deftest-g "predecessors, fails if not a digraph"
+  (def test-graph (defgraph))
+  (test-error (predecessors test-graph :fails) "Input graph `g` must be a digraph."))
+
+(deftest-g "predecessors"
+  ((def test-graph (defgraph))
+  (make-digraph! test-graph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test (predecessors test-graph :c) @[:a :b]))
 
 (deftest-g "out-edges, fails if `g` is not a valid graph"
   (test-error (out-edges :fails :a) "First argument to `edges` must be a valid graph."))
@@ -202,6 +283,7 @@
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
   (test (out-edges test-graph :a) @[[:a :c] [:a :b]])
+  (test (out-edges test-graph :b) @[[:b :c] [:b :a]])
   (test (out-edges test-graph :c) @[[:c :a] [:c :b]]))
 
 (deftest-g "out-edges, none"
@@ -209,12 +291,66 @@
   (add-nodes test-graph :a)
   (test (out-edges test-graph :a) @[]))
 
-(deftest "out-edges, digraph"
-  (def test-graph (defgraph))
-  (make-digraph! test-graph)
+(deftest-g "out-edges, digraph"
+  ((def test-graph (defgraph))
+  (make-digraph! test-graph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
   (test (out-edges test-graph :a) @[[:a :c] [:a :b]])
+  (test (out-edges test-graph :b) @[[:b :c]])
   (test (out-edges test-graph :c) @[]))
+
+(deftest-g "in-edges, not a digraph"
+  (def test-graph (defgraph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test-error (in-edges test-graph :b) "Input graph `g` must be a digraph."))
+
+(deftest-g "in-edges"
+  ((def test-graph (defgraph))
+  (make-digraph! test-graph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test (in-edges test-graph :a) @[])
+  (test (in-edges test-graph :b) @[[:a :b]])
+  (test (in-edges test-graph :c) @[[:a :c] [:b :c]]))
+
+(deftest-g "out-degree"
+  (def test-graph (defgraph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test (out-degree test-graph :a) 2)
+  (test (out-degree test-graph :b) 2)
+  (test (out-degree test-graph :c) 2))
+
+(deftest-g "out-degree, none"
+  (def test-graph (defgraph))
+  (add-nodes test-graph :a)
+  (test (out-degree test-graph :a) 0))
+
+(deftest-g "out-degree, digraph"
+  ((def test-graph (defgraph))
+  (make-digraph! test-graph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test (out-degree test-graph :a) 2)
+  (test (out-degree test-graph :c) 0))
+
+(deftest-g "in-degree, not digraph"
+  (def test-graph (defgraph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test-error (in-degree test-graph :a) "Input graph `g` must be a valid digraph.")
+  (test-error (in-degree test-graph :b) "Input graph `g` must be a valid digraph.")
+  (test-error (in-degree test-graph :c) "Input graph `g` must be a valid digraph."))
+
+(deftest-g "in-degree, none"
+  ((def test-graph (defgraph))
+  (make-digraph! test-graph))
+  (add-nodes test-graph :a)
+  (test (in-degree test-graph :a) 0))
+
+(deftest-g "in-degree"
+  ((def test-graph (defgraph))
+  (make-digraph! test-graph))
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test (in-degree test-graph :a) 0)
+  (test (in-degree test-graph :b) 1)
+  (test (in-degree test-graph :c) 2))
 
 (deftest-g "edges, fails if graph `g` is not a valid graph"
   (test-error (edges :fails) "Argument to `edges` must be a valid graph."))
@@ -230,8 +366,8 @@
   (test (edges test-graph) @[[:c :a] [:c :b] [:a :c] [:a :b] [:b :c] [:b :a]]))
 
 (deftest "edges, digraph"
-  (def test-graph (defgraph))
-  (make-digraph! test-graph)
+  ((def test-graph (defgraph))
+  (make-digraph! test-graph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
   (test (edges test-graph) @[[:a :c] [:a :b] [:b :c]]))
 
@@ -242,8 +378,8 @@
   (test (edges test-graph) @[[:c :a] [:c :b] [:a :c] [:a :b] [:b :c] [:b :a]]))
 
 (deftest "edges, weighted digraph"
-  (def test-graph (defgraph))
-  (make-digraph! test-graph)
+  ((def test-graph (defgraph))
+  (make-digraph! test-graph))
   (make-weighted! test-graph)
   (add-edges test-graph [:a :b 7] [:b :c 8] [:a :c 9])
   (test (edges test-graph) @[[:a :c] [:a :b] [:b :c]]))

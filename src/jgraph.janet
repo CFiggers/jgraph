@@ -55,9 +55,8 @@
   (each key [:adj :in] 
         (each edge (g key) 
               (each key (keys edge) 
-                    (update edge key |(if (= (type $) :number) $ weight))))))
-
-(update @[:a :b] 2 |(or $ "this"))
+                    (update edge key 
+                            |(if (= (type $) :number) $ weight))))))
 
 (defn node? :tested [node]
   (node-schema node))
@@ -116,32 +115,13 @@
   (reduce (fn [g [n1 n2 n3]]
             (let [weighted (weighted? g)
                   content (if weighted n3 true)]
-              (when weighted (assert n3) "Provide a weight for edges in a weighted graph.")
+              (when weighted (assert n3) "You must provide a weight for edges in a weighted graph.")
               (add-nodes g n1 n2)
               (put-in g [:adj n1 n2] content)
               (if (digraph? g)
                 (put-in g [:in n2 n1] content)      
                 (put-in g [:adj n2 n1] content))))
           g edges))
-
-
-# (defn add-edges [g & edges]
-#   (each edge edges
-#         (assert (edge-schema edge)))
-#   (reduce (fn [g [n1 n2]]
-#             (-> g 
-#                 (add-nodes n1 n2)
-#                 ()))))
-
-(comment
-  (defgraph "mygraph-2")
-
-
-  (graph? mygraph-2)
-
-
-  (metadata a-graph)
-  )
 
 # (defn build-graph [g & inits]
 #   (assert (= (type name) :string)) 

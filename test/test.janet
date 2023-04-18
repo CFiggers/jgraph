@@ -25,10 +25,11 @@
 
 (deftest-g "unweighted-edge-schema"
   (test (unweighted-edge-schema @[:a :b]) true)
-  (test (unweighted-edge-schema @[:a :b :c]) false)
+  (test (unweighted-edge-schema @[:a :b :c]) true)
   (test (unweighted-edge-schema {:x 1 :y 2}) nil)
   (test (unweighted-edge-schema @["here" "there"]) true)
-  (test (unweighted-edge-schema @[:a @[:c :d]]) true))
+  (test (unweighted-edge-schema @[:a @[:c :d]]) true)
+  (test (unweighted-edge-schema @[]) true))
 
 (deftest-g "weighted-edge-schema"
   (test (weighted-edge-schema @[:a :b]) nil)
@@ -37,17 +38,19 @@
   (test (weighted-edge-schema {:x 1 :y 2}) nil)
   (test (weighted-edge-schema @["here" "there"]) nil)
   (test (weighted-edge-schema @["here" "there" 50]) true)
-  (test (weighted-edge-schema @[:a @[:c :d]]) nil))
+  (test (weighted-edge-schema @[:a @[:c :d]]) nil)
+  (test (weighted-edge-schema @[]) true))
 
 (deftest-g "edge-schema"
   (test (edge-schema :a) false)
-  (test (edge-schema @[:a :b :c]) false)
+  (test (edge-schema @[:a :b :c]) true)
   (test (edge-schema @[:a :b 15]) true)
   (test (edge-schema {:x 1 :y 2}) false)
   (test (edge-schema @["here" "there"]) true)
   (test (edge-schema @[:a @[:c :d]]) true)
   (test (edge-schema false) false)
-  (test (edge-schema nil) false))
+  (test (edge-schema nil) false)
+  (test (edge-schema @[]) true))
 
 (deftest-g "node-schema"
   (test (node-schema :a) true)
@@ -77,7 +80,7 @@
   (def test-graph (defgraph))
   (test (= test-graph Graph) false)
   (test test-graph @{:adj @{} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{}})
-  (test-error (defgraph :fails) "optional argument to `defgraph` must be a valid graph"))
+  (test-error (defgraph :fails) "optional argument to `defgraph` must be a valid graph Got: :fails"))
 
 (deftest-g "make-digraph!"
   (def test-graph (defgraph))
@@ -202,7 +205,7 @@
 
 (deftest-g "predecessors, fails if not a digraph"
   (def test-graph (defgraph))
-  (test-error (predecessors test-graph :fails) "Input graph `g` must be a digraph."))
+  (test-error (predecessors test-graph :fails) "Input graph `g` must be a digraph. Got: @{:adj @{} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{}}"))
 
 (deftest-g "predecessors"
   ((def test-graph (defgraph))
@@ -217,7 +220,7 @@
   (test test-graph @{:adj @{:a @{:b true :c true} :b @{:c true} :c @{:b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}))
 
 (deftest "remove-nodes, not passed a graph"
-  (test-error (remove-nodes @{} :fails) "First argument to `remove-nodes` must be a valid graph."))
+  (test-error (remove-nodes @{} :fails) "First argument to `remove-nodes` must be a valid graph. Got: @{}"))
 
 (deftest "remove-nodes, not in list"
   (def test-graph (defgraph))
@@ -244,7 +247,7 @@
   (test test-graph @{:adj @{:b @{}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:b true}}))
 
 (deftest-g "out-edges, fails if `g` is not a valid graph"
-  (test-error (out-edges :fails :a) "First argument to `edges` must be a valid graph."))
+  (test-error (out-edges :fails :a) "First argument to `edges` must be a valid graph. Got: :fails"))
 
 (deftest-g "out-edges, fails if `node` not member of `g`"
   (def test-graph (defgraph))
@@ -274,7 +277,7 @@
 (deftest-g "in-edges, not a digraph"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-  (test-error (in-edges test-graph :b) "Input graph `g` must be a digraph."))
+  (test-error (in-edges test-graph :b) "Input graph `g` must be a digraph. Got: @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}"))
 
 (deftest-g "in-edges"
   ((def test-graph (defgraph))
@@ -306,9 +309,9 @@
 (deftest-g "in-degree, not digraph"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-  (test-error (in-degree test-graph :a) "Input graph `g` must be a valid digraph.")
-  (test-error (in-degree test-graph :b) "Input graph `g` must be a valid digraph.")
-  (test-error (in-degree test-graph :c) "Input graph `g` must be a valid digraph."))
+  (test-error (in-degree test-graph :a) "Input graph `g` must be a valid digraph. Got: @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}")
+  (test-error (in-degree test-graph :b) "Input graph `g` must be a valid digraph. Got: @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}")
+  (test-error (in-degree test-graph :c) "Input graph `g` must be a valid digraph. Got: @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}"))
 
 (deftest-g "in-degree, none"
   ((def test-graph (defgraph))
@@ -325,7 +328,7 @@
   (test (in-degree test-graph :c) 2))
 
 (deftest-g "edges, fails if graph `g` is not a valid graph"
-  (test-error (edges :fails) "Argument to `edges` must be a valid graph."))
+  (test-error (edges :fails) "Argument to `edges` must be a valid graph. Got: :fails"))
 
 (deftest-g "edges, none"
   (def test-graph (defgraph))
@@ -356,11 +359,11 @@
   (add-edges test-graph [:a :b 7] [:b :c 8] [:a :c 9])
   (test (edges test-graph) @[[:a :c] [:a :b] [:b :c]]))
 (deftest-g "add-edges, fails if bad graph"
-  (test-error (add-edges :fails [:a :b]) "First argument to `add-edges` must be a valid graph."))
+  (test-error (add-edges :fails [:a :b]) "First argument to `add-edges` must be a valid graph. Got: :fails"))
 
 (deftest-g "add-edges, fails if bad edges"
   (def test-graph (defgraph))
-  (test-error (add-edges test-graph :fails) "All edges passed to `add-edges` must be valid edges."))
+  (test-error (add-edges test-graph :fails) "All edges passed to `add-edges` must be valid edges. Got: :fails"))
 
 (deftest-g "add-edges, simple"
   (def test-graph (defgraph))
@@ -379,7 +382,7 @@
   (def test-weighted-graph (defgraph))
   (make-weighted! test-weighted-graph)
   (test (metadata test-weighted-graph) @{:graph true :weighted true})
-  (test-error (add-edges test-weighted-graph [:a :b] [:a :c]) "All edges passed to `add-edges` with a weighted graph must be valid weighted edges."))
+  (test-error (add-edges test-weighted-graph [:a :b] [:a :c]) "All edges passed to `add-edges` with a weighted graph must be valid weighted edges. Got: (:a :b)"))
 
 (deftest "add-edges, weighted"
   (def test-weighted-graph (defgraph))
@@ -393,7 +396,7 @@
   (make-digraph! test-weighted-digraph)
   (make-weighted! test-weighted-digraph)
   (test (metadata test-weighted-digraph) @{:digraph true :graph true :weighted true})
-  (test-error (add-edges test-weighted-digraph [:a :b] [:a :c]) "All edges passed to `add-edges` with a weighted graph must be valid weighted edges."))
+  (test-error (add-edges test-weighted-digraph [:a :b] [:a :c]) "All edges passed to `add-edges` with a weighted graph must be valid weighted edges. Got: (:a :b)"))
 
 (deftest "add-edges, weighted and directional"
   (def test-weighted-digraph (defgraph))
@@ -403,11 +406,11 @@
   (test (add-edges test-weighted-digraph [:a :b 50] [:a :c 100]) @{:adj @{:a @{:b 50 :c 100}} :attrs @{} :in @{:b @{:a 50} :c @{:a 100}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{:a true :b true :c true}}))
 
 (deftest-g "remove-edges, fails if bad graph"
-  (test-error (remove-edges :fails [:a :b]) "First argument to `remove-edges` must be a valid graph."))
+  (test-error (remove-edges :fails [:a :b]) "First argument to `remove-edges` must be a valid graph. Got: :fails"))
 
 (deftest-g "remove-edges, fails if bad edges"
   (def test-graph (defgraph))
-  (test-error (add-edges test-graph :fails) "All edges passed to `add-edges` must be valid edges."))
+  (test-error (add-edges test-graph :fails) "All edges passed to `add-edges` must be valid edges. Got: :fails"))
 
 (deftest-g "remove-edges, simple"
   (def test-graph (defgraph))
@@ -496,7 +499,7 @@
 (deftest-g "transpose, fails on non-digraph"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:a :c] [:c :d])
-  (test-error (transpose test-graph) "First argument to `transpose` must be a valid digraph."))
+  (test-error (transpose test-graph) "First argument to `transpose` must be a valid digraph. Got: @{:adj @{ :a @{:b true :c true} :b @{:a true} :c @{:a true :d true} :d @{:c true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ :a true :b true :c true :d true}}"))
 
 (deftest-g "transpose, simple digraph"
   (def test-graph (defgraph))

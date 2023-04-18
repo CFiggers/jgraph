@@ -1,6 +1,5 @@
 (use judge)
 (import spork/schema)
-(use /src/utils)
 
 (def graph-schema :tested
   (schema/predicate 
@@ -13,13 +12,14 @@
 (def unweighted-edge-schema :tested
   (schema/predicate
    (and (pred indexed?)
-        (length 2))))
+        (length 0 3))))
 
 (def weighted-edge-schema :tested
   (schema/predicate
    (and (pred indexed?)
-        (length 3)
-        (pred |(= (type (last $)) :number)))))
+        (or (length 0)
+            (and (length 3)
+                 (pred |(= (type (last $)) :number)))))))
 
 (def edge-schema :tested
   (schema/predicate
@@ -45,8 +45,11 @@
   (if-let [metadata (g :metadata)]
     metadata @{}))
 
+(def deep-clone :tested
+  (comp unmarshal marshal))
+
 (defn defgraph :tested [&opt ingraph] 
-  (when ingraph (assert (graph? ingraph) "optional argument to `defgraph` must be a valid graph"))
+  (when ingraph (assert (graph? ingraph) (string/format "optional argument to `defgraph` must be a valid graph Got: %q" ingraph)))
   (default ingraph @{})
   (merge (deep-clone (struct/to-table Graph)) ingraph))
 
@@ -95,7 +98,7 @@
   (keys (get-in g [:adj node] @{})))
 
 (defn predecessors :tested [g node]
-  (assert (digraph? g) "Input graph `g` must be a digraph.")
+  (assert (digraph? g) (string/format "Input graph `g` must be a digraph. Got: %q" g))
   (keys (get-in g [:in node] @{})))
 
 (defn remove-adj-nodes :tested [g nodes neighbors] 
@@ -105,7 +108,7 @@
   g)
 
 (defn remove-nodes :tested [g & nodes]
-  (assert (graph? g) "First argument to `remove-nodes` must be a valid graph.") 
+  (assert (graph? g) (string/format "First argument to `remove-nodes` must be a valid graph. Got: %q" g)) 
   (let [nodes-flat (flatten nodes)
         nbrs (distinct (filter |(not (index-of $ nodes-flat)) 
                      (mapcat |(successors g $) nodes-flat)))]
@@ -119,7 +122,7 @@
   provided `node`. Node must be a member of the provided
   graph `g`.``
   [g node]
-  (assert (graph? g) "First argument to `edges` must be a valid graph.") 
+  (assert (graph? g) (string/format "First argument to `edges` must be a valid graph. Got: %q" g)) 
   (assert (has-node? g node) "Provided node is not a member of provided graph.")
   (seq [to-node :in (successors g node)]
        [node to-node]))
@@ -132,7 +135,7 @@
   (comp length out-edges))
 
 (defn in-degree :tested [g node]
-  (assert (digraph? g) "Input graph `g` must be a valid digraph.")
+  (assert (digraph? g) (string/format "Input graph `g` must be a valid digraph. Got: %q" g))
   (length (get-in g [:in node] @{})))
 
 (defn edges :tested
@@ -140,7 +143,7 @@
   full set of all edges from each node to each of that
   node's successor nodes. ``
   [g]
-  (assert (graph? g) "Argument to `edges` must be a valid graph.")
+  (assert (graph? g) (string/format "Argument to `edges` must be a valid graph. Got: %q" g))
   (seq [node :in (nodes g)] 
     ;(seq [edge :in (out-edges g node)] 
        edge)))
@@ -151,7 +154,7 @@
                   :add (if weighted n3 true)
                   :remove nil)]
     (when (and weighted (= kind :add)) 
-      (assert n3) "You must provide a weight for edges in a weighted graph.")
+      (assert n3 "You must provide a weight for edges in a weighted graph."))
     (add-nodes g n1 n2)
     (put-in g [:adj n1 n2] content)
     (if (digraph? g)
@@ -159,16 +162,16 @@
       (put-in g [:adj n2 n1] content))))
 
 (defn add-edges :tested [g & edges] 
-  (assert (graph? g) "First argument to `add-edges` must be a valid graph.")
+  (assert (graph? g) (string/format "First argument to `add-edges` must be a valid graph. Got: %q" g))
   (each edge edges
     (if (weighted? g)
-      (assert (weighted-edge-schema edge) "All edges passed to `add-edges` with a weighted graph must be valid weighted edges.")
-      (assert (edge-schema edge) "All edges passed to `add-edges` must be valid edges."))) 
+      (assert (weighted-edge-schema edge) (string/format "All edges passed to `add-edges` with a weighted graph must be valid weighted edges. Got: %q" edge))
+      (assert (edge-schema edge) (string/format "All edges passed to `add-edges` must be valid edges. Got: %q" edge)))) 
   (reduce |(update-edge $0 $1 :add) g edges)
   g)
 
 (defn remove-edges :tested [g & edges]
-  (assert (graph? g) "First argument to `remove-edges` must be a valid graph.") 
+  (assert (graph? g) (string/format "First argument to `remove-edges` must be a valid graph. Got: %q" g)) 
   (reduce |(update-edge $0 $1 :remove) g edges)
   g) 
 
@@ -191,7 +194,7 @@
   (get-in g [:adj n1 n2] nil))
 
 (defn transpose :tested [g]
-  (assert (digraph? g) "First argument to `transpose` must be a valid digraph.")
+  (assert (digraph? g) (string/format "First argument to `transpose` must be a valid digraph. Got: %q" g))
   (let [temp-g (-> (deep-clone g)
                    (put :adj @{})
                    (put :in @{}))]
@@ -231,30 +234,16 @@
   (defn build [g init] 
     (cond
       # graph
-      (graph? init) (if (and (weighted? g) (weighted? init)) 
-                      (put (add-edges  
-                            (add-nodes g ;(nodes init)) 
-                            ;(seq [[n1 n2] :in (edges init)]  
-                               [n1 n2 (get-weight init [n1 n2])])) 
-                           :attrs (merge (g :attrs) (init :attrs))) 
-                      (let [build-edges (if (weighted? g) 
-                                          (seq [[n1 n2] :in (edges init)] 
-                                            [n1 n2 1]) 
-                                          (edges init))] 
-                        (add-nodes g ;(nodes init)) 
-                        (add-edges g ;build-edges) 
-                        (put g :attrs (merge (g :attrs) (init :attrs)))))
+      (graph? init) (do (add-nodes g ;(nodes init)) 
+                        (add-edges g ;(map |(array/push (array/slice $) 1) (edges init))) 
+                        (put g :attrs (merge (g :attrs) (init :attrs))))
       # adjacency map
-      (dictionary? init) (let [es (if (number? (get-in (map values (values init))
-                                                       [0 0] nil))
-                                    ;(seq [[n nbrs] :in (pairs init)]
-                                      ;(seq [[nbr wt] :in (pairs nbrs)]
-                                        [n nbr wt]))
-                                    ;(seq [[n nbrs] :in (pairs init)]
-                                      ;(seq [[nbr bool] :in (pairs nbrs)]
-                                         [n nbr])))] 
-                           (add-nodes g ;(keys init))
-                           (add-edges g ;es))
+      (dictionary? init) (do (each value (values init) 
+                               (assert (dictionary? value) (string/format "Values in adjacency maps must be associative. Got: %q" value))) 
+                             (add-nodes g ;(keys init)) 
+                             (add-edges g ;(seq [[node neighbors] :in (pairs init)]  
+                                             ;(seq [[n1 n2] :in (pairs neighbors)] 
+                                                [node n1 n2]))))
       # edge
       (indexed? init) (add-edges g init)
       # node
@@ -262,14 +251,14 @@
 
   (reduce build g inits))
 
-(defn graph [& inits]
+(defn graph :tested [& inits]
   (build-graph (defgraph) ;inits))
 
-(defn digraph [& inits]
+(defn digraph :tested [& inits]
   (build-graph (make-digraph! (defgraph)) ;inits))
 
-(defn weighted-graph [& inits] 
+(defn weighted-graph :tested [& inits] 
   (build-graph (make-weighted! (defgraph)) ;inits))
 
-(defn weighted-digraph [& inits]
+(defn weighted-digraph :tested [& inits]
   (build-graph (make-digraph! (make-weighted! (defgraph))) ;inits))

@@ -53,20 +53,6 @@
   (default ingraph @{})
   (merge (deep-clone (struct/to-table Graph)) ingraph))
 
-# TODO: Update :in when making an existing graph a digraph
-(defn make-digraph! :tested [g]
-  (put (g :metadata) :digraph true) g)
-
-(defn make-weighted! :tested [g &opt weight]
-  (default weight 1)
-  (put (g :metadata) :weighted true)
-  (each key [:adj :in] 
-    (each edge (g key) 
-      (each key (keys edge) 
-        (update edge key 
-                |(if (= (type $) :number) $ weight)))))
-  g)
-
 (def node? :tested
   node-schema)
 
@@ -231,6 +217,22 @@
   [g nodes]
   (add-path g (array/push (array/slice nodes) (first nodes))))
 
+(defn make-digraph! :tested [g]
+  (let [edg (map |(array/push (array/slice $) 1) (edges g))]
+    (put (g :metadata) :digraph true)
+    (add-edges g ;edg)
+    g))
+
+(defn make-weighted! :tested [g &opt weight]
+  (default weight 1)
+  (put (g :metadata) :weighted true)
+  (each key [:adj :in] 
+    (each edge (g key) 
+      (each key (keys edge) 
+        (update edge key 
+                |(if (= (type $) :number) $ weight)))))
+  g)
+
 (defn build-graph :tested [g & inits] 
   (defn build [g init] 
     (cond
@@ -263,4 +265,4 @@
   (build-graph (make-weighted! (defgraph)) ;inits))
 
 (defn weighted-digraph :tested [& inits]
-  (build-graph (make-digraph! (make-weighted! (defgraph))) ;inits))
+  (build-graph (make-weighted!(make-digraph!  (defgraph))) ;inits))

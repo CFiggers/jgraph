@@ -88,6 +88,15 @@
   (make-digraph! test-graph)
   (test ((metadata test-graph) :digraph) true))
 
+
+(deftest "make-digraph!, with existing edges"
+  (def test-graph (defgraph)) 
+  (add-edges test-graph [:a :b] [:b :c] [:a :c])
+  (test ((metadata test-graph) :digraph) nil)
+  (make-digraph! test-graph)
+  (test ((metadata test-graph) :digraph) true)
+  (test test-graph @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :metadata @{:digraph true :graph true} :nodeset @{:a true :b true :c true}}))
+
 (deftest "make-weighted!, simple"
   (def test-graph-0 (defgraph))
   (test ((metadata test-graph-0) :weighted) nil)

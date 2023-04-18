@@ -17,7 +17,7 @@ Create a graph:
 (def my-graph (graph [1 2] [2 3] {3 [4] 5 [6 7]} 7 8 9))
 #                                       ^
 #                                       |
-#                  Adjacency map---------
+#                  Adjacency map --------
 ```
 
 Create digraphs and weighted graphs:
@@ -32,7 +32,8 @@ Create digraphs and weighted graphs:
 # Weighted digraph combines features of weighted graph and digraph
 (def my-weighted-digraph (weighted-digraph [:a :b 10] [:a :c 20] [:c :d 30] [:d :b 10]))
 
-# Add weighted or digraph features (or both) to an existing graph (and automatically update edges if necessary)
+# Add weighted or digraph features (or both) to an existing graph (and automatically 
+# update edges if necessary)
 (def my-new-graph (graph [:a :b] [:b :c] [:a :c]))
 (make-digraph! my-new-graph)
 (make-weighted! my-new-graph)
@@ -42,6 +43,9 @@ Create digraphs and weighted graphs:
 
 Inspect a graph:
 ```janet
+(metadata my-graph)
+=> @{:graph true}
+
 (nodes my-graph)
 => @[1 2 3 4 5 6 7 8 9]
 
@@ -67,14 +71,14 @@ Inspect a graph:
 => ([true nil nil] [true true true])
 ```
 
-Add/remove items (mutate in place):
+Add/remove items (most mutate in place):
 
 ```janet
 (add-nodes my-graph "foobar" {:name "baz"} [1 2 3])
 
 (add-edges my-graph [10 11] ["foobar" {:name "baz"}])
 
-(add-edges my-weighted-graph [:e :f 40] [:f :g 50]) #weighted edges
+(add-edges my-weighted-graph [:e :f 40] [:f :g 50]) # weighted edges have a numeric third term
 
 (remove-nodes my-graph 1 2 3)
 
@@ -82,6 +86,12 @@ Add/remove items (mutate in place):
 
 (subgraph my-graph [5 6 7]) # Does not mutate original graph, returns new one
 ```
+
+## Dependencies
+
+* [Janet](https://www.github.com/janet-lang/janet)
+* [Spork](https://www.github.com/janet-lang/spork)
+* [Dev/Testing Only] [Ianthehenry/Judge](https://www.github.com/ianthehenry/judge)
 
 ## TODO
 - [x] Basic graph construction and add/remove functions

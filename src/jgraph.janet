@@ -51,7 +51,7 @@
   (merge (deep-clone (struct/to-table Graph)) ingraph))
 
 (defn make-digraph! :tested [g]
-  (put (g :metadata) :digraph true))
+  (put (g :metadata) :digraph true) g)
 
 (defn make-weighted! :tested [g &opt weight]
   (default weight 1)
@@ -60,7 +60,8 @@
     (each edge (g key) 
       (each key (keys edge) 
         (update edge key 
-                |(if (= (type $) :number) $ weight))))))
+                |(if (= (type $) :number) $ weight)))))
+  g)
 
 (def node? :tested
   node-schema)
@@ -84,11 +85,6 @@
     (put (g :nodeset) node true))
   g)
 
-# (let [nbrs (mapcat #(successors g %) nodes)]
-#        (-> g
-#            (update-in [:nodeset] #(apply disj % nodes))
-#            (assoc :adj (remove-adj-nodes (:adj g) nodes nbrs disj))))
-
 (defn has-node? :tested [g node] 
   (truthy? (index-of node (nodes g))))
 
@@ -109,7 +105,7 @@
   g)
 
 (defn remove-nodes :tested [g & nodes]
-  (assert (graph? g) "Input graph `g` must be a valid graph.") 
+  (assert (graph? g) "First argument to `remove-nodes` must be a valid graph.") 
   (let [nodes-flat (flatten nodes)
         nbrs (distinct (filter |(not (index-of $ nodes-flat)) 
                      (mapcat |(successors g $) nodes-flat)))]
@@ -149,51 +145,82 @@
     ;(seq [edge :in (out-edges g node)] 
        edge)))
 
+(defn update-edge :tested [g [n1 n2 n3] kind]
+  (let [weighted (weighted? g)
+        content (case kind
+                  :add (if weighted n3 true)
+                  :remove nil)]
+    (when (and weighted (= kind :add)) 
+      (assert n3) "You must provide a weight for edges in a weighted graph.")
+    (add-nodes g n1 n2)
+    (put-in g [:adj n1 n2] content)
+    (if (digraph? g)
+      (put-in g [:in n2 n1] content)
+      (put-in g [:adj n2 n1] content))))
+
 (defn add-edges :tested [g & edges]
   (assert (graph? g) "First argument to `add-edges` must be a valid graph.")
   (each edge edges
     (if (weighted? g)
       (assert (weighted-edge-schema edge) "All edges passed to `add-edges` with a weighted graph must be valid weighted edges.")
-      (assert (edge-schema edge) "All edges passed to `add-edges` must be valid edges.")))
-  (reduce (fn [g [n1 n2 n3]]
-            (let [weighted (weighted? g)
-                  content (if weighted n3 true)]
-              (when weighted (assert n3) "You must provide a weight for edges in a weighted graph.")
-              (add-nodes g n1 n2)
-              (put-in g [:adj n1 n2] content)
-              (if (digraph? g)
-                (put-in g [:in n2 n1] content)      
-                (put-in g [:adj n2 n1] content))))
-          g edges))
+      (assert (edge-schema edge) "All edges passed to `add-edges` must be valid edges."))) 
+  (reduce |(update-edge $0 $1 :add) g edges)
+  g)
 
-(defn remove-edges [])
+(defn remove-edges :tested [g & edges]
+  (assert (graph? g) "First argument to `remove-edges` must be a valid graph.") 
+  (reduce |(update-edge $0 $1 :remove) g edges)
+  g) 
 
-(defn remove-all [])
+(defn remove-all-edges :tested [g]
+  (remove-edges g ;(edges g)) g)
 
-(defn transpose []
-  # (reduce (fn [tg [n1 n2]]
-  #           (add-edges* tg [[n2 n1 (weight g n1 n2)]]))
-  #         (assoc g :adj {} :in {})
-  #         (edges g))
-  )
+(defn remove-all-nodes :tested [g]
+  (set (g :nodeset) @{})
+  (set (g :adj) @{})
+  (set (g :attrs) @{})
+  (when (digraph? g)
+    (set (g :in) @{}))
+  g)
 
-(defn weight [])
+(defn src    [edge] (get edge 0))
+(defn dest   [edge] (get edge 1))
+(defn weight [edge] (get edge 2))
 
-(defn src [edge])
+(defn get-weight :tested [g [n1 n2]] 
+  (get-in g [:adj n1 n2] nil))
 
-(defn dest [edge])
+(defn transpose :tested [g]
+  (assert (digraph? g) "First argument to `transpose` must be a valid digraph.")
+  (let [temp-g (-> (deep-clone g)
+                   (put :adj @{})
+                   (put :in @{}))]
+    (reduce (fn [tg [n1 n2]]
+              (add-edges tg (if (weighted? tg) 
+                              [n2 n1 (get-weight g [n1 n2])]
+                              [n2 n1])))
+            temp-g
+            (edges g))))
 
-(defn subgraph
+(defn subgraph :tested
   "Returns a graph with only the given nodes"
   [g ns]
-  # (remove-nodes* g (remove (set ns) (nodes g)))
-  )
+  (let [new-g (deep-clone g)] 
+    (remove-nodes new-g (filter |(not (index-of $ ns)) (nodes g)))))
 
-(defn add-path
+(defn add-weights :tested [edges &opt weight]
+  (seq [edge :in edges]
+    (array/push edge (or weight 1))))
+
+(defn add-path :tested
   "Adds a path of edges connecting the given nodes in order"
-  [g & nodes]
-  # (add-edges* g (partition 2 1 nodes))
-  )
+  [g nodes]
+  (let [pnodes (seq [i :range [0 (dec (length nodes))]]
+                 (array/slice nodes i (+ 2 i)))
+        edges (if (weighted? g) 
+                (add-weights pnodes)
+                pnodes)]
+    (add-edges g ;pnodes)))
 
 (defn add-cycle
   "Adds a cycle of edges connecting the given nodes in order"

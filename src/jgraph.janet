@@ -53,6 +53,7 @@
   (default ingraph @{})
   (merge (deep-clone (struct/to-table Graph)) ingraph))
 
+# TODO: Update :in when making an existing graph a digraph
 (defn make-digraph! :tested [g]
   (put (g :metadata) :digraph true) g)
 
@@ -238,10 +239,11 @@
                         (add-edges g ;(map |(array/push (array/slice $) 1) (edges init))) 
                         (put g :attrs (merge (g :attrs) (init :attrs))))
       # adjacency map
-      (dictionary? init) (do (each value (values init) 
-                               (assert (dictionary? value) (string/format "Values in adjacency maps must be associative. Got: %q" value))) 
+      (dictionary? init) (let [init-s (seq [[fst snd] :in (pairs init)]
+                                        (if (indexed? snd)
+                                          [fst (from-pairs (map |[$ true] snd))] [fst snd]))] 
                              (add-nodes g ;(keys init)) 
-                             (add-edges g ;(seq [[node neighbors] :in (pairs init)]  
+                             (add-edges g ;(seq [[node neighbors] :in init-s]  
                                              ;(seq [[n1 n2] :in (pairs neighbors)] 
                                                 [node n1 n2]))))
       # edge

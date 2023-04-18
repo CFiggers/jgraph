@@ -94,7 +94,7 @@
 (defn successors :tested [g node]
   (keys (get-in g [:adj node] @{})))
 
-(defn predecessors [g node]
+(defn predecessors :tested [g node]
   (assert (digraph? g) "Input graph `g` must be a digraph.")
   (keys (get-in g [:in node] @{})))
 
@@ -158,7 +158,7 @@
       (put-in g [:in n2 n1] content)
       (put-in g [:adj n2 n1] content))))
 
-(defn add-edges :tested [g & edges]
+(defn add-edges :tested [g & edges] 
   (assert (graph? g) "First argument to `add-edges` must be a valid graph.")
   (each edge edges
     (if (weighted? g)
@@ -222,42 +222,54 @@
                 pnodes)]
     (add-edges g ;pnodes)))
 
-(defn add-cycle
+(defn add-cycle :tested
   "Adds a cycle of edges connecting the given nodes in order"
-  [g & nodes]
-  # (add-edges* g (partition 2 1 (concat nodes [(first nodes)])))
-  )
+  [g nodes]
+  (add-path g (array/push (array/slice nodes) (first nodes))))
 
-# (defn build-graph [g & inits]
-#   (assert (= (type name) :string)) 
+(defn build-graph :tested [g & inits] 
+  (defn build [g init] 
+    (cond
+      # graph
+      (graph? init) (if (and (weighted? g) (weighted? init)) 
+                      (put (add-edges  
+                            (add-nodes g ;(nodes init)) 
+                            ;(seq [[n1 n2] :in (edges init)]  
+                               [n1 n2 (get-weight init [n1 n2])])) 
+                           :attrs (merge (g :attrs) (init :attrs))) 
+                      (let [build-edges (if (weighted? g) 
+                                          (seq [[n1 n2] :in (edges init)] 
+                                            [n1 n2 1]) 
+                                          (edges init))] 
+                        (add-nodes g ;(nodes init)) 
+                        (add-edges g ;build-edges) 
+                        (put g :attrs (merge (g :attrs) (init :attrs)))))
+      # adjacency map
+      (dictionary? init) (let [es (if (number? (get-in (map values (values init))
+                                                       [0 0] nil))
+                                    ;(seq [[n nbrs] :in (pairs init)]
+                                      ;(seq [[nbr wt] :in (pairs nbrs)]
+                                        [n nbr wt]))
+                                    ;(seq [[n nbrs] :in (pairs init)]
+                                      ;(seq [[nbr bool] :in (pairs nbrs)]
+                                         [n nbr])))] 
+                           (add-nodes g ;(keys init))
+                           (add-edges g ;es))
+      # edge
+      (indexed? init) (add-edges g init)
+      # node
+      (add-nodes g init)))
 
-#   (defn build [g init]
-#     (cond
-#       # graph
-#       (graph? init) (if (and (weighted? g) (weighted? init))
-#                       (put (reduce add-edges
-#                                    (add-nodes g (nodes init))
-#                                    (seq [[n1 n2] :in (edges init)]
-#                                         [n1 n2 (weight init [n1 n2])]))
-#                            :attrs (merge (:attrs g) (:attrs init)))
-#                       (-> g
-#                           (add-nodes (nodes init))
-#                           (add-edges (edges init))
-#                           (put :attrs (merge (:attrs g) (:attrs init)))))
-#       # adjacency map
-#       (dictionary? init) (let [es (if (dictionary? (get init 0))
-#                                     (seq [[n nbrs] :in init]
-#                                          (seq [[nbr wt] :in nbrs]
-#                                               [n nbr wt]))
-#                                     (seq [[n nbrs] :in init]
-#                                          (seq [nbr :in nbrs]
-#                                               [n nbr])))]
-#                            (-> g
-#                                (add-nodes (keys init))
-#                                (add-edges es)))
-#       # edge
-#       (indexed? init) (add-edges g init)
-#       # node
-#       (add-nodes g init)))
+  (reduce build g inits))
 
-#   (reduce build g inits))
+(defn graph [& inits]
+  (build-graph (defgraph) ;inits))
+
+(defn digraph [& inits]
+  (build-graph (make-digraph! (defgraph)) ;inits))
+
+(defn weighted-graph [& inits] 
+  (build-graph (make-weighted! (defgraph)) ;inits))
+
+(defn weighted-digraph [& inits]
+  (build-graph (make-digraph! (make-weighted! (defgraph))) ;inits))

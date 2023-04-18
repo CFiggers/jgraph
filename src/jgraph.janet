@@ -265,4 +265,4 @@
   (build-graph (make-weighted! (defgraph)) ;inits))
 
 (defn weighted-digraph :tested [& inits]
-  (build-graph (make-weighted!(make-digraph!  (defgraph))) ;inits))
+  (build-graph (make-weighted! (make-digraph! (defgraph))) ;inits))

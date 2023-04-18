@@ -88,7 +88,6 @@
   (make-digraph! test-graph)
   (test ((metadata test-graph) :digraph) true))
 
-
 (deftest "make-digraph!, with existing edges"
   (def test-graph (defgraph)) 
   (add-edges test-graph [:a :b] [:b :c] [:a :c])

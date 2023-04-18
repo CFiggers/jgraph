@@ -6,6 +6,22 @@ Very much **work in progress.** Issues and pull requests welcome!
 
 ## Basics
 
+Install `jgraph`:
+
+```bash
+$ sudo jpm install https://github.com/CFiggers/jgraph
+```
+
+Import jgraph:
+
+```janet
+(import jgraph) # To prefix jgraph functions with "jgraph", e.g. `jgraph/graph`
+# or
+(import jgraph :as j) # To prefix jgraph functions with "j", e.g. `j/graph`
+# or
+(use jgraph) # To not prefix jgraph functions at all (beware collisions)
+```
+
 Create a graph:
 
 ```janet

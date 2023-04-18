@@ -6,7 +6,24 @@ Very much **work in progress.** Issues and pull requests welcome!
 
 ## Basics
 
-Install `jgraph`:
+### Installation 
+
+To install `jgraph` locally:
+
+Add `jgraph` to your `project.janet`'s dependencies
+```janet
+# project.janet
+(declare-project
+  :name "test project"
+  :dependencies ["https://github.com/CFiggers/jgraph"])
+```
+
+Then, use `jpm` to install dependencies locally
+```bash
+$ jpm deps --local
+```
+
+Or, to install `jgraph` globally:
 
 ```bash
 $ sudo jpm install https://github.com/CFiggers/jgraph
@@ -21,6 +38,8 @@ Import jgraph:
 # or
 (use jgraph) # To not prefix jgraph functions at all (beware collisions)
 ```
+
+### Usage
 
 Create a graph:
 

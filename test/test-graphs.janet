@@ -731,7 +731,7 @@
   (test (graph [1 2] [2 3] {3 {4 true} 5 {6 true 7 true}} 7 8 9) @{:adj @{ 1 @{2 true} 2 @{1 true 3 true} 3 @{2 true 4 true} 4 @{3 true} 5 @{6 true 7 true} 6 @{5 true} 7 @{5 true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ 1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))
 
 (deftest "digraph"
-  (test (digraph [1 2] [2 3] {3 {4 true} 5 {6 true 7 true}} 7 8 9) @{:adj @{ 1 @{2 true} 2 @{3 true} 3 @{4 true} 5 @{6 true 7 true}} :attrs @{} :in @{ 2 @{1 true} 3 @{2 true} 4 @{3 true} 6 @{5 true} 7 @{5 true}} :metadata @{:digraph true :graph true} :nodeset @{ 1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))
+  (test (digraph [1 2] [2 3] {3 {4 true} 5 {6 true 7 true}} 7 8 9) @{:adj @{1 @{2 true} 2 @{3 true} 3 @{4 true} 5 @{6 true 7 true}} :attrs @{} :in @{2 @{1 true} 3 @{2 true} 4 @{3 true} 6 @{5 true} 7 @{5 true}} :metadata @{:digraph true :graph true} :nodeset @{1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))
 
 (deftest "weighted-graph"
   (test (weighted-graph [1 2 100] [2 3 100] {3 {4 100} 5 {6 100 7 100}} 7 8 9) @{:adj @{ 1 @{2 100} 2 @{1 100 3 100} 3 @{2 100 4 100} 4 @{3 100} 5 @{6 100 7 100} 6 @{5 100} 7 @{5 100}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{ 1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))

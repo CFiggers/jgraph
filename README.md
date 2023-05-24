@@ -10,7 +10,7 @@ Very much **work in progress.** Issues and pull requests welcome!
 
 To install `jgraph` locally:
 
-Add `jgraph` to your `project.janet`'s dependencies
+- Add `jgraph` to your `project.janet`'s dependencies
 ```janet
 # project.janet
 (declare-project
@@ -18,7 +18,7 @@ Add `jgraph` to your `project.janet`'s dependencies
   :dependencies ["https://github.com/CFiggers/jgraph"])
 ```
 
-Then, use `jpm` to install dependencies locally
+- Then, use `jpm` to install dependencies locally (i.e. only in a single project)
 ```bash
 $ jpm deps --local
 ```
@@ -46,13 +46,13 @@ Create a graph:
 ```janet
 # Initialize graphs with any combination of: edges, adacency maps, nodes, other graphs
 
-#              Edges ---------          Nodes --------
-#                      |     |                   | | |
+#              Edges ──┬─────┐          Nodes ───┬─┬─┐
+#                      │     │                   │ │ │
 #                      v     v                   v v v
 (def my-graph (graph [1 2] [2 3] {3 [4] 5 [6 7]} 7 8 9))
-#                                       ^
-#                                       |
-#                  Adjacency map --------
+#                                ^ ^ ^ ^ ^ ^ ^ ^   
+#                                       │
+#                  Adjacency map ───────┘
 ```
 
 Create digraphs and weighted graphs:
@@ -113,7 +113,7 @@ Add/remove items (most mutate in place):
 
 (add-edges my-graph [10 11] ["foobar" {:name "baz"}])
 
-(add-edges my-weighted-graph [:e :f 40] [:f :g 50]) # weighted edges have a numeric third term
+(add-edges my-weighted-graph [:e :f 40] [:f :g 50]) # weighted edges require a numeric third term
 
 (remove-nodes my-graph 1 2 3)
 
@@ -126,7 +126,7 @@ Add/remove items (most mutate in place):
 
 * [Janet](https://www.github.com/janet-lang/janet)
 * [Spork](https://www.github.com/janet-lang/spork)
-* [Dev/Testing Only] [Ianthehenry/Judge](https://www.github.com/ianthehenry/judge)
+* [Ianthehenry/Judge](https://www.github.com/ianthehenry/judge) (Needed for Dev/Testing Only)
 
 ## TODO
 - [x] Basic graph construction and add/remove functions

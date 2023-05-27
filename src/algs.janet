@@ -1,13 +1,13 @@
 (use judge)
 
-(defn remove [pred col]
+(defn remove :is-private [pred col]
   (case (type pred)
     :function (filter |(not (pred $)) col)
     :array (filter |(not (index-of $ pred)) col)
     :tuple (filter |(not (index-of $ pred)) col)
     (filter |(not (= pred $)) col)))
 
-(defn iterate [fun init]
+(defn iterate :is-private [fun init]
   (coro (var x init)
         (forever (yield x)
                  (set x (fun x)))))

@@ -34,7 +34,7 @@
         g4 (digraph g1)
         g5 (digraph g3 (graph [5 6]) [7 8] 9)
         g6 (digraph)
-        g7 (transpose g1)]
+        g7 (transpose-digraph g1)]
     (test (nodes g1) @[1 2 3 4])
     (test (edges g1) @[[1 2] [1 3] [2 3]])
     (test (nodes g2) @[4 1 2 3])
@@ -85,7 +85,7 @@
         g4 (weighted-digraph g1)
         g5 (weighted-digraph g3 (weighted-graph [5 6 88]) [7 8 1] 9)
         g6 (weighted-digraph)
-        g7 (transpose g1)]
+        g7 (transpose-digraph g1)]
     (test (nodes g1) @[1 2 3 4])
     (test (edges g1) @[[1 2] [1 3] [2 3]])
     (test (nodes g2) @[4 1 2 3])

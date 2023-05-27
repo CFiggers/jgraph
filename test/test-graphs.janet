@@ -1,5 +1,5 @@
 (use judge)
-(use /src/jgraph)
+(use /src/graphs)
 
 (def start (os/clock))
 
@@ -221,10 +221,10 @@
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
   (test (predecessors test-graph :c) @[:a :b]))
 
-(deftest "remove-adj-nodes"
+(deftest "remove-nodes-adj"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-  (remove-adj-nodes test-graph [:a] [:b :c])
+  (remove-nodes-adj test-graph [:a] [:b :c])
   (test test-graph @{:adj @{:a @{:b true :c true} :b @{:c true} :c @{:b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}))
 
 (deftest "remove-nodes, not passed a graph"
@@ -317,9 +317,9 @@
 (deftest "in-degree, not digraph"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-  (test-error (in-degree test-graph :a) "Input graph `g` must be a valid digraph. Got: @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}")
-  (test-error (in-degree test-graph :b) "Input graph `g` must be a valid digraph. Got: @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}")
-  (test-error (in-degree test-graph :c) "Input graph `g` must be a valid digraph. Got: @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}"))
+  (test-error (in-degree test-graph :a) "Input graph `dg` must be a valid digraph. Got: @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}")
+  (test-error (in-degree test-graph :b) "Input graph `dg` must be a valid digraph. Got: @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}")
+  (test-error (in-degree test-graph :c) "Input graph `dg` must be a valid digraph. Got: @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}"))
 
 (deftest "in-degree, none"
   ((def test-graph (defgraph))
@@ -448,79 +448,79 @@
   (remove-edges test-weighted-digraph [:a :b])
   (test test-weighted-digraph @{:adj @{:a @{:c 25}} :attrs @{} :in @{:b @{} :c @{:a 25}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{:a true :b true :c true}}))
 
-(deftest "remove-all-edges, simple"
+(deftest "remove-edges-all, simple"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:a :c])
-  (remove-all-edges test-graph)
+  (remove-edges-all test-graph)
   (test test-graph @{:adj @{:a @{} :b @{} :c @{}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}))
 
-(deftest "remove-all-edges, digraph"
+(deftest "remove-edges-all, digraph"
   (def test-digraph (defgraph))
   (make-digraph! test-digraph)
   (add-edges test-digraph [:a :b] [:a :c])
-  (remove-all-edges test-digraph)
+  (remove-edges-all test-digraph)
   (test test-digraph @{:adj @{:a @{}} :attrs @{} :in @{:b @{} :c @{}} :metadata @{:digraph true :graph true} :nodeset @{:a true :b true :c true}}))
 
-(deftest "remove-all-edges, weighted"
+(deftest "remove-edges-all, weighted"
   (def test-weighted-graph (defgraph))
   (make-weighted! test-weighted-graph)
   (add-edges test-weighted-graph [:a :b 15] [:a :c 25])
-  (remove-all-edges test-weighted-graph)
+  (remove-edges-all test-weighted-graph)
   (test test-weighted-graph @{:adj @{:a @{} :b @{} :c @{}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{:a true :b true :c true}}))
 
-(deftest "remove-all-edges, weighted and directional"
+(deftest "remove-edges-all, weighted and directional"
   (def test-weighted-digraph (defgraph))
   (make-digraph! test-weighted-digraph)
   (make-weighted! test-weighted-digraph)
   (add-edges test-weighted-digraph [:a :b 15] [:a :c 25])
-  (remove-all-edges test-weighted-digraph)
+  (remove-edges-all test-weighted-digraph)
   (test test-weighted-digraph @{:adj @{:a @{}} :attrs @{} :in @{:b @{} :c @{}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{:a true :b true :c true}}))
 
-(deftest "remove-all-nodes, simple"
+(deftest "remove-nodes-all, simple"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:a :c])
-  (remove-all-nodes test-graph)
+  (remove-nodes-all test-graph)
   (test test-graph @{:adj @{} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{}}))
 
-(deftest "remove-all-nodes, digraph"
+(deftest "remove-nodes-all, digraph"
   (def test-digraph (defgraph))
   (make-digraph! test-digraph)
   (add-edges test-digraph [:a :b] [:a :c])
-  (remove-all-nodes test-digraph)
+  (remove-nodes-all test-digraph)
   (test test-digraph @{:adj @{} :attrs @{} :in @{} :metadata @{:digraph true :graph true} :nodeset @{}}))
 
-(deftest "remove-all-nodes, weighted"
+(deftest "remove-nodes-all, weighted"
   (def test-weighted-graph (defgraph))
   (make-weighted! test-weighted-graph)
   (add-edges test-weighted-graph [:a :b 15] [:a :c 25])
-  (remove-all-nodes test-weighted-graph)
+  (remove-nodes-all test-weighted-graph)
   (test test-weighted-graph @{:adj @{} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{}}))
 
-(deftest "remove-all-nodes, weighted and directional"
+(deftest "remove-nodes-all, weighted and directional"
   (def test-weighted-digraph (defgraph))
   (make-digraph! test-weighted-digraph)
   (make-weighted! test-weighted-digraph)
   (add-edges test-weighted-digraph [:a :b 15] [:a :c 25])
-  (remove-all-nodes test-weighted-digraph)
+  (remove-nodes-all test-weighted-digraph)
   (test test-weighted-digraph @{:adj @{} :attrs @{} :in @{} :metadata @{:digraph true :graph true :weighted true} :nodeset @{}}))
 
-(deftest "transpose, fails on non-digraph"
+(deftest "transpose-digraph, fails on non-digraph"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:a :c] [:c :d])
-  (test-error (transpose test-graph) "First argument to `transpose` must be a valid digraph. Got: @{:adj @{ :a @{:b true :c true} :b @{:a true} :c @{:a true :d true} :d @{:c true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ :a true :b true :c true :d true}}"))
+  (test-error (transpose-digraph test-graph) "First argument to `transpose-digraph` must be a valid digraph. Got: @{:adj @{ :a @{:b true :c true} :b @{:a true} :c @{:a true :d true} :d @{:c true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ :a true :b true :c true :d true}}"))
 
-(deftest "transpose, simple digraph"
+(deftest "transpose-digraph, simple digraph"
   (def test-graph (defgraph))
   (make-digraph! test-graph)
   (add-edges test-graph [:a :b] [:a :c] [:c :d])
-  (test (transpose test-graph) @{:adj @{:b @{:a true} :c @{:a true} :d @{:c true}} :attrs @{} :in @{:a @{:b true :c true} :c @{:d true}} :metadata @{:digraph true :graph true} :nodeset @{ :a true :b true :c true :d true}}))
+  (test (transpose-digraph test-graph) @{:adj @{:b @{:a true} :c @{:a true} :d @{:c true}} :attrs @{} :in @{:a @{:b true :c true} :c @{:d true}} :metadata @{:digraph true :graph true} :nodeset @{ :a true :b true :c true :d true}}))
 
-(deftest "transpose, weighted digraph"
+(deftest "transpose-digraph, weighted digraph"
   (def test-graph (defgraph))
   (make-digraph! test-graph)
   (make-weighted! test-graph)
   (add-edges test-graph [:a :b 100] [:a :c 200] [:c :d 300])
-  (test (transpose test-graph) @{:adj @{:b @{:a 100} :c @{:a 200} :d @{:c 300}} :attrs @{} :in @{:a @{:b 100 :c 200} :c @{:d 300}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{ :a true :b true :c true :d true}}))
+  (test (transpose-digraph test-graph) @{:adj @{:b @{:a 100} :c @{:a 200} :d @{:c 300}} :attrs @{} :in @{:a @{:b 100 :c 200} :c @{:d 300}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{ :a true :b true :c true :d true}}))
 
 (deftest "subgraph"
   (def test-graph (defgraph))

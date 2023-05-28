@@ -23,6 +23,9 @@
 (setdyn 'dest nil)
 (setdyn 'weight nil)
 
+(setdyn 'remove-nodes-prim nil)
+(setdyn 'update-edge nil)
+
 (setdyn 'defgraph nil)
 (setdyn 'make-digraph! nil)
 (setdyn 'make-weighted! nil)

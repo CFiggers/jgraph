@@ -37,15 +37,24 @@
    :in       @{}
    :attrs    @{}})
 
-(defn graph? :tested [g]
+(defn graph? :tested 
+  ``Check if `g` is a graph.``
+  [g]
   (and (graph-schema g)
        ((g :metadata) :graph)))
 
-(defn metadata :tested [g]
+(defn metadata :tested 
+  ``Returns the `:metadata` of `g`. Equivalent to 
+  (g :metadata), except returns an empty table
+  instead of `nil` if `g` has no `:metadata` key.`` 
+  [g]
   (if-let [metadata (g :metadata)]
     metadata @{}))
 
-(def deep-clone :tested
+(def deep-clone :tested 
+  ``Fully copies an object or data structure by marshalling
+  it into memory and then unmarshalling it into a new data structure.
+  Useful for deeply copying tables, like graphs.`` 
   (comp unmarshal marshal))
 
 (defn defgraph :tested :is-private [&opt ingraph] 
@@ -53,73 +62,128 @@
   (default ingraph @{})
   (merge (deep-clone (struct/to-table Graph)) ingraph))
 
-(def node? :tested
-  node-schema)
+(defn node? :tested
+  ``Check if `n` is a valid node.``
+  [n]
+  (node-schema n))
 
-(defn digraph? :tested [g]
+(defn digraph? :tested  
+  ``Check if `g` is a digraph.``
+  [g]
   (and (dictionary? g)
        ((metadata g) :graph)
        ((metadata g) :digraph)
        (graph-schema g)))
 
-(defn weighted? :tested [g]
+(defn weighted? :tested  
+  ``Check if `g` is a weighted graph.``
+  [g]
   (and ((metadata g) :graph)
        ((metadata g) :weighted)
        (graph-schema g)))
 
-(defn nodes :tested [g] 
+(defn nodes :tested  
+  ``Get the nodes of a valid graph. Equivalent to calling
+  (keys (`g` :nodeset)).``
+  [g] 
   (keys (g :nodeset)))
 
-(defn add-nodes :tested [g & nodes]
+(defn add-nodes :tested  
+  ``Given a valid graph, `g`, and any number of values, add 
+  an arbitrary number of nodes to `g`.``
+  [g & nodes]
   (each node nodes 
     (put (g :nodeset) node true))
   g)
 
-(defn has-node? :tested [g node] 
+(defn has-node? :tested  
+  ``Given a valid graph, `g`, and any value, `node`, check 
+  whether `node` is in the `:nodeset` of `g`.``
+  [g node] 
   (truthy? (index-of node (nodes g))))
 
-(defn has-edge? :tested [g [n1 n2 n3]]
+(defn has-edge? :tested  
+  ``Given a valid graph, `g`, and a valid edge, returns 
+  `true` or `false` indicating whether `g` has that edge.``
+  [g [n1 n2 n3]]
   (truthy? (index-of n2 (keys (get-in g [:adj n1] @{})))))
 
-(defn successors :tested [g node]
+(defn successors :tested  
+  ``Given a valid graph, `g`, and a node, `node`, returns an array
+  of nodes pointed to by all edges leaving `node`.``
+  [g node]
   (keys (get-in g [:adj node] @{})))
 
-(defn predecessors :tested [g node]
-  (assert (digraph? g) (string/format "Input graph `g` must be a digraph. Got: %q" g))
-  (keys (get-in g [:in node] @{})))
+(defn predecessors :tested  
+  ``Given a valid digraph, `dg`, and a node, `node`, returns an array
+  of nodes possessing edges that point to `node`. Errors if `dg` is 
+  not a digraph.``
+  [dg node]
+  (assert (digraph? dg) (string/format "Input graph `dg` must be a digraph. Got: %q" dg))
+  (keys (get-in dg [:in node] @{})))
 
-(defn remove-nodes-adj :tested [g nodes neighbors] 
+(defn remove-nodes-prim :tested :is-private [g nodes neighbors]
   (each neighbor neighbors
     (each node nodes
       (put-in (g :adj) [neighbor node] nil)))
   g)
 
-(defn remove-nodes :tested [g & nodes]
-  (assert (graph? g) (string/format "First argument to `remove-nodes` must be a valid graph. Got: %q" g)) 
+(defn remove-nodes :tested 
+  ``Given a valid graph, `g`, and any number of values, removes
+  those values from `g`'s :nodeset and eliminates all edges that include
+  any of those values.``
+  [g & nodes]
+  (assert (graph? g) (string/format "First argument to `remove-nodes` must be a valid graph. Got: %q" g))
   (let [nodes-flat (flatten nodes)
-        nbrs (distinct (filter |(not (index-of $ nodes-flat)) 
-                     (mapcat |(successors g $) nodes-flat)))]
+        nbrs (distinct (filter |(not (index-of $ nodes-flat))
+                               (mapcat |(successors g $) nodes-flat)))]
     (each n nodes-flat (put (g :nodeset) n nil))
     (each n nodes-flat (put (g :adj) n nil))
-    (remove-nodes-adj g nodes-flat nbrs))
+    (remove-nodes-prim g nodes-flat nbrs))
   g)
 
+(defn remove-nodes-succ 
+  ``Given a valid graph, `g`, and a node, `node`, removes all nodes
+  from the graph that are successors to the provided node.``
+  [g node]
+  (remove-nodes g (successors g node)))
+
+(defn remove-nodes-pred
+  ``Given a valid digraph, `dg`, and a node, `node`, removes all nodes
+  from the graph that are predecessors to the provided node. Errors if
+  `g` is not a digraph.``
+  [dg node] 
+  (remove-nodes dg (predecessors dg node)))
+
+(defn remove-nodes-adj
+  ``Given a valid graph, `g`, and a node, `node`, removes all nodes
+  from the graph that have any adjacency to that node.``
+  [g node]
+  (remove-nodes-pred g node)
+  (remove-nodes-succ g node))
+
 (defn out-edges :tested
-  ``Returns a tuple of all edges that go out from the
-  provided `node`. Node must be a member of the provided
-  graph `g`.``
+  ``Returns a tuple of all edges that go out from the provided `node`. 
+  Errors if `g` is not a graph or if `node` is not a node in `g`.``
   [g node]
   (assert (graph? g) (string/format "First argument to `edges` must be a valid graph. Got: %q" g)) 
   (assert (has-node? g node) "Provided node is not a member of provided graph.")
   (seq [to-node :in (successors g node)]
        [node to-node]))
 
-(defn in-edges :tested [g node]
+(defn in-edges :tested 
+  ``Given a valid graph, `g`, and any value, `node`, returns an array
+  of edges in `g` that point to `node`.``
+  [g node]
   (seq [n2 :in (predecessors g node)]
     [n2 node]))
 
-(def out-degree :tested
-  (comp length out-edges))
+(defn out-degree :tested
+  ``Given a valid graph, `g`, and any value, `node`, returns an integer
+  indicating the number of edges in `g` that point to `node`. Equivalent to
+  `(length (out-edges g node))`.``
+  [g node]
+  (length (out-edges g node)))
 
 (defn in-degree :tested 
   ``Takes a digraph, `dg` and a node, `node` and returns an integer
@@ -140,20 +204,23 @@
         edge :in (out-edges g node)] 
     edge))
 
-(defn update-edge :tested [g [n1 n2 n3] kind]
+(defn update-edge :tested :is-private [g [n1 n2 w] kind]
   (let [weighted (weighted? g)
         content (case kind
-                  :add (if weighted n3 true)
+                  :add (if weighted w true)
                   :remove nil)]
     (when (and weighted (= kind :add)) 
-      (assert n3 "You must provide a weight for edges in a weighted graph."))
+      (assert w "You must provide a weight for edges in a weighted graph."))
     (add-nodes g n1 n2)
     (put-in g [:adj n1 n2] content)
     (if (digraph? g)
       (put-in g [:in n2 n1] content)
       (put-in g [:adj n2 n1] content))))
 
-(defn add-edges :tested [g & edges] 
+(defn add-edges :tested 
+  ``Given a valid graph, `g`, and any number of edges, add all edges
+  to `g`, including creating new nodes if not already in `g`.``
+  [g & edges] 
   (assert (graph? g) (string/format "First argument to `add-edges` must be a valid graph. Got: %q" g))
   (each edge edges
     (if (weighted? g)
@@ -162,15 +229,22 @@
   (reduce |(update-edge $0 $1 :add) g edges)
   g)
 
-(defn remove-edges :tested [g & edges]
+(defn remove-edges :tested 
+  ``Given a valid graph, `g`, and any number of edges, remove all edges
+  from `g`.``
+  [g & edges]
   (assert (graph? g) (string/format "First argument to `remove-edges` must be a valid graph. Got: %q" g)) 
   (reduce |(update-edge $0 $1 :remove) g edges)
   g) 
 
-(defn remove-edges-all :tested [g]
+(defn remove-edges-all :tested 
+  ``Remove all edges from graph `g`.``
+  [g]
   (remove-edges g ;(edges g)) g)
 
-(defn remove-nodes-all :tested [g]
+(defn remove-nodes-all :tested 
+  ``Remove all nodes from graph `g`.``
+  [g]
   (set (g :nodeset) @{})
   (set (g :adj) @{})
   (set (g :attrs) @{})
@@ -182,7 +256,12 @@
 (defn dest   :is-private [edge] (get edge 1))
 (defn weight :is-private [edge] (get edge 2))
 
-(defn get-weight :tested [g [n1 n2]] 
+(defn get-weight :tested
+  ``Given a valid graph, `g`, and a tuple of at least two elements,
+  checks for a weight on the edge in `g` between the two elements.
+  Will return `true` if `g` is not a weighted graph and `nil` if there
+  is no edge between `n1` and `n2`.``
+  [g [n1 n2]]
   (get-in g [:adj n1 n2] nil))
 
 (defn transpose-digraph :tested 
@@ -206,7 +285,10 @@
   (let [new-g (deep-clone g)] 
     (remove-nodes new-g (filter |(not (index-of $ ns)) (nodes g)))))
 
-(defn add-weights :tested [edges &opt weight]
+(defn add-weights :tested 
+  ``Given an indexed ds of edges and any value, `weight`, adds `weight` 
+  to each edge.``
+  [edges &opt weight]
   (seq [edge :in edges]
     (array/push edge (or weight 1))))
 
@@ -263,14 +345,26 @@
 
   (reduce build g inits))
 
-(defn graph :tested [& inits]
+(defn graph :tested 
+  ``Initialize a graph using any combination of nodes, edges, 
+  adjacency maps, or existing graphs.``
+  [& inits]
   (build-graph (defgraph) ;inits))
 
-(defn digraph :tested [& inits]
+(defn digraph :tested 
+  ``Initialize a digraph using any combination of nodes, edges, 
+  adjacency maps, or existing graphs.``
+  [& inits]
   (build-graph (make-digraph! (defgraph)) ;inits))
 
-(defn weighted-graph :tested [& inits] 
+(defn weighted-graph :tested 
+  ``Initialize a weighted graph using any combination of nodes, edges, 
+  adjacency maps, or existing graphs.``
+  [& inits] 
   (build-graph (make-weighted! (defgraph)) ;inits))
 
-(defn weighted-digraph :tested [& inits]
+(defn weighted-digraph :tested 
+  ``Initialize a weighted digraph using any combination of nodes, edges, 
+  adjacency maps, or existing graphs.``
+  [& inits]
   (build-graph (make-weighted! (make-digraph! (defgraph))) ;inits))

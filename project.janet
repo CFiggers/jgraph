@@ -5,6 +5,7 @@
                  "https://github.com/janet-lang/spork"])
 
 (declare-source
-  :source ["src/jgraph.janet" 
+  :prefix "jgraph"
+  :source ["src/init.janet" 
            "src/algs.janet"
            "src/graphs.janet"])

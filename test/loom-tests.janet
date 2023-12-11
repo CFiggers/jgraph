@@ -1,5 +1,5 @@
 (use judge)
-(use /src/jgraph)
+(use /src/init)
 
 (def start (os/clock))
 

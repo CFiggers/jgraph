@@ -1,4 +1,5 @@
 (use judge)
+(use ./graphs)
 
 (defn remove :is-private [pred col]
   (case (type pred)

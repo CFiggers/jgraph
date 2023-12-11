@@ -1,5 +1,8 @@
 (use judge)
 (use /src/algs)
+(use /test/test-utils)
+
+(assert-docs "/src/algs")
 
 (def start (os/clock))
 

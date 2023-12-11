@@ -1,5 +1,8 @@
 (use judge)
 (use /src/graphs)
+(use /test/test-utils)
+
+(assert-docs "/src/graphs")
 
 (def start (os/clock))
 

@@ -226,9 +226,13 @@
 
 (defn update-edge :tested :is-private [g [n1 n2 w] kind]
   (let [weighted (weighted? g)
-        content (case kind
-                  :add (if weighted w (or w true))
-                  :remove nil)]
+        old-content (get-in g [:adj n1 n2])
+        content (cond
+                  (= kind :remove) nil
+                  weighted w
+                  (array? old-content) @[;old-content w]
+                  (and w (not= w true)) @[w]
+                  true)]
     (when (and weighted (= kind :add)) 
       (assert w "You must provide a weight for edges in a weighted graph."))
     (add-nodes g n1 n2)

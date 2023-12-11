@@ -819,10 +819,24 @@
   (test (graph [1 2] [2 3] {3 {4 true} 5 {6 true 7 true}} 7 8 9) @{:adj @{ 1 @{2 true} 2 @{1 true 3 true} 3 @{2 true 4 true} 4 @{3 true} 5 @{6 true 7 true} 6 @{5 true} 7 @{5 true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ 1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))
 
 (deftest "graph with edge labels, works"
-  (test (graph [1 2 "this"] [2 3 "that"]) @{:adj @{1 @{2 "this"} 2 @{1 "this" 3 "that"} 3 @{2 "that"}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{1 true 2 true 3 true}}))
+  (test (graph [1 2 "this"] [2 3 "that"] [2 3 "the other"])
+    @{:adj @{1 @{2 @["this"]}
+             2 @{1 @["this"] 3 @["that" "the other"]}
+             3 @{2 @["that" "the other"]}}
+      :attrs @{}
+      :in @{}
+      :metadata @{:graph true}
+      :nodeset @{1 true 2 true 3 true}}))
 
 (deftest "digraph with edge labels, works"
-  (test (digraph [1 2 "this"] [2 3 "that"]) @{:adj @{1 @{2 "this"} 2 @{3 "that"}} :attrs @{} :in @{2 @{1 "this"} 3 @{2 "that"}} :metadata @{:digraph true :graph true} :nodeset @{1 true 2 true 3 true}}))
+  (test (digraph [1 2 "this"] [2 3 "that"] [2 3 "the other"])
+    @{:adj @{1 @{2 @["this"]}
+             2 @{3 @["that" "the other"]}}
+      :attrs @{}
+      :in @{2 @{1 @["this"]}
+            3 @{2 @["that" "the other"]}}
+      :metadata @{:digraph true :graph true}
+      :nodeset @{1 true 2 true 3 true}}))
 
 (deftest "graph with edge labels, falsey"
   (test (graph [1 2 false] [2 3 nil]) @{:adj @{1 @{2 true} 2 @{1 true 3 true} 3 @{2 true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{1 true 2 true 3 true}}))

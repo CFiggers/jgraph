@@ -14,6 +14,11 @@
    (and (pred indexed?)
         (length 0 3))))
 
+(def attr-edge-schema :is-private
+  (schema/predicate
+   (and (pred indexed?)
+        (length 0 3))))
+
 (def weighted-edge-schema :tested :is-private
   (schema/predicate
    (and (pred indexed?)
@@ -24,7 +29,8 @@
 (def edge-schema :tested :is-private
   (schema/predicate
    (or (pred unweighted-edge-schema)
-       (pred weighted-edge-schema))))
+       (pred weighted-edge-schema)
+       (pred attr-edge-schema))))
 
 (def node-schema :tested :is-private
   (schema/predicate
@@ -80,6 +86,13 @@
   [g]
   (and ((metadata g) :graph)
        ((metadata g) :weighted)
+       (graph-schema g)))
+
+(defn attr?
+  ``Check if `g` is an attr graph.``
+  [g]
+  (and ((metadata g) :graph)
+       ((metadata g) :attr)
        (graph-schema g)))
 
 (defn nodes :tested  

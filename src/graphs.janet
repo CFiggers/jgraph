@@ -125,7 +125,11 @@
 (defn remove-nodes-prim :tested :is-private [g nodes neighbors]
   (each neighbor neighbors
     (each node nodes
-      (put-in (g :adj) [neighbor node] nil)))
+      (put-in (g :adj) [neighbor node] nil)
+      (put-in (g :in) [neighbor node] nil)))
+  (each [node val] (pairs (g :in))
+    (when (deep= val @{})
+      (put (g :in) node nil)))
   g)
 
 (defn remove-nodes :tested 
@@ -136,9 +140,12 @@
   (assert (graph? g) (string/format "First argument to `remove-nodes` must be a valid graph. Got: %q" g))
   (let [nodes-flat (flatten nodes)
         nbrs (distinct (filter |(not (index-of $ nodes-flat))
-                               (mapcat |(successors g $) nodes-flat)))]
+                               (array/concat (mapcat |(successors g $) nodes-flat)
+                                             (if (digraph? g) 
+                                               (mapcat |(predecessors g $) nodes-flat) @[]))))]
     (each n nodes-flat (put (g :nodeset) n nil))
     (each n nodes-flat (put (g :adj) n nil))
+    (each n nodes-flat (put (g :in) n nil))
     (remove-nodes-prim g nodes-flat nbrs))
   g)
 
@@ -308,7 +315,8 @@
   (add-path g (array/push (array/slice nodes) (first nodes))))
 
 (defn make-digraph! :tested :is-private [g]
-  (let [edg (map |(array/push (array/slice $) 1) (edges g))]
+  (let [dflt (if (weighted? g) 1 true)
+        edg (map |(array/push (array/slice $) dflt) (edges g))]
     (put (g :metadata) :digraph true)
     (add-edges g ;edg)
     g))
@@ -328,7 +336,7 @@
     (cond
       # graph
       (graph? init) (do (add-nodes g ;(nodes init)) 
-                        (add-edges g ;(map |(array/push (array/slice $) 1) (edges init))) 
+                        (add-edges g ;(map |(array/push (array/slice $) (if (weighted? g) 1 true)) (edges init))) 
                         (put g :attrs (merge (g :attrs) (init :attrs))))
       # adjacency map
       (dictionary? init) (let [init-s (seq [[fst snd] :in (pairs init)]

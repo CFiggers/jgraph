@@ -214,7 +214,7 @@
 (defn update-edge :tested :is-private [g [n1 n2 w] kind]
   (let [weighted (weighted? g)
         content (case kind
-                  :add (if weighted w true)
+                  :add (if weighted w (or w true))
                   :remove nil)]
     (when (and weighted (= kind :add)) 
       (assert w "You must provide a weight for edges in a weighted graph."))

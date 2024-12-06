@@ -69,3 +69,45 @@
 #                           (step (into (pop stack) nbrs)
 #                                 seen)))))))]
 #     (step [start] seen)))
+
+# (defn topsort-component
+#   "Topological sort of a component of a (presumably) directed graph.
+#   Returns nil if the graph contains any cycles. See loom.alg/topsort
+#   for a complete topological sort"
+#   ([successors start]
+#      (topsort-component successors start #{} #{}))
+#   ([successors start seen explored]
+#      (loop [seen seen
+#             explored explored
+#             result ()
+#             stack [start]]
+#        (if (empty? stack)
+#          result
+#          (let [v (peek stack)
+#                seen (conj seen v)
+#                us (remove explored (successors v))]
+#            (if (seq us)
+#              (when-not (some seen us)
+#                (recur seen explored result (conj stack (first us))))
+#              (recur seen (conj explored v) (conj result v) (pop stack)))))))) 
+
+(defn topsort-dfs 
+  ``
+  Depth-first topological sort of a digraph. Digraph must be acyclic.
+  ``
+  [graph]
+  (var visited @[])
+  (var stack @[])
+  
+  (defn dfs [node] 
+    (unless (index-of node visited)
+      (array/push visited node) 
+      (each s (successors graph node)
+        (dfs s))
+      (array/push stack node)))
+
+  (each node (nodes graph)
+    (unless (index-of node visited)
+      (dfs node)))
+
+  (reverse stack))

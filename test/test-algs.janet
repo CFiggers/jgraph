@@ -2,6 +2,8 @@
 (use /src/algs)
 (use /test/test-utils)
 
+(use /src/graphs)
+
 (assert-docs "/src/algs")
 
 (def start (os/clock))
@@ -29,6 +31,18 @@
 
 (deftest "preds->span"
   (test (preds->span {:a :b :c :b}) @{:b [:c :a]}))
+
+(deftest "topsort-dfs 1"
+  (def dg (digraph {:a [:b :c] :b [:c :d] :c [:d :e] :d [] :e []}))
+  (test (topsort-dfs dg) @[:a :b :c :e :d]))
+
+(deftest "topsort-dfs 2"
+  (def dg (digraph {:a [:b :c :d] :b [:d] :c [:d :e]}))
+  (test (topsort-dfs dg) @[:a :b :c :e :d]))
+
+(deftest "topsort-dfs 3"
+  (def dg (digraph {:a [:b :c] :b [:d :e] :c [:d :f]}))
+  (test (topsort-dfs dg) @[:a :b :e :c :f :d]))
 
 (deftest final-time 
   (print "Elapsed time: " (- (os/clock) start) " seconds"))

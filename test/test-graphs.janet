@@ -216,7 +216,7 @@
 (deftest "successors"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:a :c])
-  (test (successors test-graph :a) @[:c :b])
+  (test (successors test-graph :a) @[:b :c])
   (test (successors test-graph :b) @[:a])
   (test (successors test-graph :c) @[:a]))
 
@@ -233,7 +233,7 @@
   ((def test-graph (defgraph))
     (make-digraph! test-graph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-  (test (predecessors test-graph :c) @[:a :b]))
+  (test (predecessors test-graph :c) @[:b :a]))
 
 (deftest "remove-nodes-succ"
   (def test-graph (defgraph))
@@ -336,7 +336,7 @@
       :nodeset @{:a true :b true}}))
 
 (deftest "out-edges, fails if `g` is not a valid graph"
-  (test-error (out-edges :fails :a) "First argument to `edges` must be a valid graph. Got: :fails"))
+  (test-error (out-edges :fails :a) "First argument to `out-edges` must be a valid graph. Got: :fails"))
 
 (deftest "out-edges, fails if `node` not member of `g`"
   (def test-graph (defgraph))
@@ -346,9 +346,9 @@
 (deftest "out-edges"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-  (test (out-edges test-graph :a) @[[:a :c] [:a :b]])
+  (test (out-edges test-graph :a) @[[:a :b] [:a :c]])
   (test (out-edges test-graph :b) @[[:b :c] [:b :a]])
-  (test (out-edges test-graph :c) @[[:c :a] [:c :b]]))
+  (test (out-edges test-graph :c) @[[:c :b] [:c :a]]))
 
 (deftest "out-edges, none"
   (def test-graph (defgraph))
@@ -359,7 +359,7 @@
   ((def test-graph (defgraph))
     (make-digraph! test-graph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-  (test (out-edges test-graph :a) @[[:a :c] [:a :b]])
+  (test (out-edges test-graph :a) @[[:a :b] [:a :c]])
   (test (out-edges test-graph :b) @[[:b :c]])
   (test (out-edges test-graph :c) @[]))
 
@@ -374,7 +374,7 @@
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
   (test (in-edges test-graph :a) @[])
   (test (in-edges test-graph :b) @[[:a :b]])
-  (test (in-edges test-graph :c) @[[:a :c] [:b :c]]))
+  (test (in-edges test-graph :c) @[[:b :c] [:a :c]]))
 
 (deftest "out-degree"
   (def test-graph (defgraph))
@@ -427,26 +427,26 @@
 (deftest "edges"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-  (test (edges test-graph) @[[:c :a] [:c :b] [:a :c] [:a :b] [:b :c] [:b :a]]))
+  (test (edges test-graph) @[[:b :c] [:b :a] [:a :b] [:a :c] [:c :b] [:c :a]]))
 
 (deftest "edges, digraph"
   ((def test-graph (defgraph))
     (make-digraph! test-graph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-  (test (edges test-graph) @[[:a :c] [:a :b] [:b :c]]))
+  (test (edges test-graph) @[[:b :c] [:a :b] [:a :c]]))
 
 (deftest "edges, weighted graph"
   (def test-graph (defgraph))
   (make-weighted! test-graph)
   (add-edges test-graph [:a :b 5] [:b :c 6] [:a :c 7])
-  (test (edges test-graph) @[[:c :a] [:c :b] [:a :c] [:a :b] [:b :c] [:b :a]]))
+  (test (edges test-graph) @[[:b :c] [:b :a] [:a :b] [:a :c] [:c :b] [:c :a]]))
 
 (deftest "edges, weighted digraph"
   ((def test-graph (defgraph))
     (make-digraph! test-graph))
   (make-weighted! test-graph)
   (add-edges test-graph [:a :b 7] [:b :c 8] [:a :c 9])
-  (test (edges test-graph) @[[:a :c] [:a :b] [:b :c]]))
+  (test (edges test-graph) @[[:b :c] [:a :b] [:a :c]]))
 (deftest "add-edges, fails if bad graph"
   (test-error (add-edges :fails [:a :b]) "First argument to `add-edges` must be a valid graph. Got: :fails"))
 

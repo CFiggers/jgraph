@@ -162,57 +162,73 @@
     (remove-nodes-prim g nodes-flat nbrs))
   g)
 
-(defn remove-nodes-succ 
+(defmacro remove-nodes-succ 
   ``Given a valid graph, `g`, and a node, `node`, removes all nodes
   from the graph that are successors to the provided node.``
   [g node]
-  (remove-nodes g (successors g node)))
+  (with-syms [$g $node] 
+    ~(let [,$g ,g ,$node ,node]
+       (,remove-nodes ,$g (,successors ,$g ,$node)))))
 
-(defn remove-nodes-pred
+(defmacro remove-nodes-pred
   ``Given a valid digraph, `dg`, and a node, `node`, removes all nodes
   from the graph that are predecessors to the provided node. Errors if
   `g` is not a digraph.``
   [dg node] 
-  (remove-nodes dg (predecessors dg node)))
+  (with-syms [$dg $node] 
+    ~(let [,$dg ,dg ,$node ,node]
+       (,remove-nodes ,$dg (,predecessors ,$dg ,$node)))))
 
-(defn remove-nodes-adj
+(defmacro remove-nodes-adj
   ``Given a valid graph, `g`, and a node, `node`, removes all nodes
   from the graph that have any adjacency to that node.``
   [g node]
-  (remove-nodes-pred g node)
-  (remove-nodes-succ g node))
+  (with-syms [$g $node] 
+    ~(let [,$g ,g ,$node ,node]
+       (,remove-nodes-pred ,$g ,$node)
+       (,remove-nodes-succ ,$g ,$node))))
 
-(defn out-edges :tested
+(defmacro out-edges :tested
   ``Returns a tuple of all edges that go out from the provided `node`. 
   Errors if `g` is not a graph or if `node` is not a node in `g`.``
   [g node]
-  (assert (graph? g) (string/format "First argument to `edges` must be a valid graph. Got: %q" g)) 
-  (assert (has-node? g node) "Provided node is not a member of provided graph.")
-  (seq [to-node :in (successors g node)]
-       [node to-node]))
+  (with-syms [$g $node]
+    ~(let [,$g ,g ,$node ,node]
+       (assert (,graph? ,$g) (string/format "First argument to `out-edges` must be a valid graph. Got: %q" ,$g))
+       (assert (,has-node? ,$g ,$node) "Provided node is not a member of provided graph.")
+       (seq [to-node :in (,successors ,$g ,$node)]
+            [,$node to-node]))))
 
-(defn in-edges :tested 
+(defmacro in-edges :tested 
   ``Given a valid graph, `g`, and any value, `node`, returns an array
   of edges in `g` that point to `node`.``
   [g node]
-  (seq [n2 :in (predecessors g node)]
-    [n2 node]))
+  (with-syms [$g $node]
+    ~(let [,$g ,g ,$node ,node]
+       (assert (,graph? ,$g) (string/format "First argument to `in-edges` must be a valid graph. Got: %q" ,$g))
+       (assert (,has-node? ,$g ,$node) "Provided node is not a member of provided graph.")
+       (seq [n2 :in (,predecessors ,$g ,$node)]
+         [n2 ,$node]))))
 
-(defn out-degree :tested
+(defmacro out-degree :tested
   ``Given a valid graph, `g`, and any value, `node`, returns an integer
   indicating the number of edges in `g` that point to `node`. Equivalent to
   `(length (out-edges g node))`.``
   [g node]
-  (length (out-edges g node)))
+  (with-syms [$g $node] 
+    ~(let [,$g ,g ,$node ,node]
+       (length (eval (,out-edges ,$g ,$node))))))
 
-(defn in-degree :tested 
+(defmacro in-degree :tested 
   ``Takes a digraph, `dg` and a node, `node` and returns an integer
   representing the number of directional edges pointing "in" to that node.
   Errors if `dg` is not a digraph. `node` must be a member of the provided
   graph `dg`.``
   [dg node]
-  (assert (digraph? dg) (string/format "Input graph `dg` must be a valid digraph. Got: %q" dg))
-  (length (get-in dg [:in node] @{})))
+  (with-syms [$dg $node] 
+    ~(let [,$dg ,dg ,$node ,node]
+       (assert (,digraph? ,$dg) (string/format "Input graph `dg` must be a valid digraph. Got: %q" ,$dg))
+       (length (get-in ,$dg [:in ,$node] @{})))))
 
 (defn edges :tested
   ``Iterates all nodes in a graph `g` and returns the

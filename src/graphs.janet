@@ -36,6 +36,12 @@
   (schema/predicate
    (pred truthy?)))
 
+(def attr-node-schema :tested :is-private
+  (schema/predicate
+   (and (pred indexed?)
+        (length 2)
+        (pred |(dictionary? (last $))))))
+
 (def Graph :is-private
   {:metadata @{:graph true}
    :nodeset  @{}
@@ -159,6 +165,7 @@
     (each n nodes-flat (put (g :nodeset) n nil))
     (each n nodes-flat (put (g :adj) n nil))
     (each n nodes-flat (put (g :in) n nil))
+    (each n nodes-flat (put (g :attrs) n nil))
     (remove-nodes-prim g nodes-flat nbrs))
   g)
 

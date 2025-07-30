@@ -64,6 +64,17 @@
   (test (node-schema false) false)
   (test (node-schema nil) false))
 
+(deftest "attr-node-schema"
+  (test (attr-node-schema :a) nil)
+  (test (attr-node-schema @[:a :b :c]) nil)
+  (test (attr-node-schema {:x 1 :y 2}) nil)
+  (test (attr-node-schema @["here" "there"]) false)
+  (test (attr-node-schema @[:a @[:c :d]]) false)
+  (test (attr-node-schema false) nil)
+  (test (attr-node-schema nil) nil)
+  
+  (test (attr-node-schema @[:a {:value 2}]) true))
+
 (deftest "graph?"
   (test (graph? Graph) true)
   (def test-graph (defgraph))

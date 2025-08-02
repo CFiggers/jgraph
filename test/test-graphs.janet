@@ -24,24 +24,24 @@
   (test (graph-schema Graph) true)
   (def test-graph (defgraph))
   (put test-graph :in nil)
-  (test (graph-schema test-graph) nil))
+  (test (graph-schema test-graph) false))
 
 (deftest "unweighted-edge-schema"
   (test (unweighted-edge-schema @[:a :b]) true)
   (test (unweighted-edge-schema @[:a :b :c]) true)
-  (test (unweighted-edge-schema {:x 1 :y 2}) nil)
+  (test (unweighted-edge-schema {:x 1 :y 2}) false)
   (test (unweighted-edge-schema @["here" "there"]) true)
   (test (unweighted-edge-schema @[:a @[:c :d]]) true)
   (test (unweighted-edge-schema @[]) true))
 
 (deftest "weighted-edge-schema"
-  (test (weighted-edge-schema @[:a :b]) nil)
+  (test (weighted-edge-schema @[:a :b]) false)
   (test (weighted-edge-schema @[:a :b :c]) false)
   (test (weighted-edge-schema @[:a :b 1]) true)
-  (test (weighted-edge-schema {:x 1 :y 2}) nil)
-  (test (weighted-edge-schema @["here" "there"]) nil)
+  (test (weighted-edge-schema {:x 1 :y 2}) false)
+  (test (weighted-edge-schema @["here" "there"]) false)
   (test (weighted-edge-schema @["here" "there" 50]) true)
-  (test (weighted-edge-schema @[:a @[:c :d]]) nil)
+  (test (weighted-edge-schema @[:a @[:c :d]]) false)
   (test (weighted-edge-schema @[]) true))
 
 (deftest "edge-schema"
@@ -65,13 +65,13 @@
   (test (node-schema nil) false))
 
 (deftest "attr-node-schema"
-  (test (attr-node-schema :a) nil)
-  (test (attr-node-schema @[:a :b :c]) nil)
-  (test (attr-node-schema {:x 1 :y 2}) nil)
+  (test (attr-node-schema :a) false)
+  (test (attr-node-schema @[:a :b :c]) false)
+  (test (attr-node-schema {:x 1 :y 2}) false)
   (test (attr-node-schema @["here" "there"]) false)
   (test (attr-node-schema @[:a @[:c :d]]) false)
-  (test (attr-node-schema false) nil)
-  (test (attr-node-schema nil) nil)
+  (test (attr-node-schema false) false)
+  (test (attr-node-schema nil) false)
   
   (test (attr-node-schema @[:a {:value 2}]) true))
 
@@ -81,9 +81,9 @@
   (test (graph? test-graph) true))
 
 (deftest "graph?, not a graph"
-  (test (graph? @{}) nil)
-  (test (graph? "not a graph") nil)
-  (test (graph? @[:a :b :c]) nil))
+  (test (graph? @{}) false)
+  (test (graph? "not a graph") false)
+  (test (graph? @[:a :b :c]) false))
 
 (deftest "metadata"
   (def test-graph (defgraph))

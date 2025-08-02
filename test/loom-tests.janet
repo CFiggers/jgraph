@@ -15,7 +15,7 @@
     (test (nodes g2) @[4 1 2 3])
     (test (edges g2) @[[1 2] [1 3] [2 1] [2 3] [3 1] [3 2]])
     (test (nodes g3) @[4 1 2 3])
-    (test (edges g3) @[[1 2] [1 3] [2 1] [2 3] [3 1] [3 2]]) 
+    (test (edges g3) @[[1 2] [1 3] [2 1] [2 3] [3 1] [3 2]])
     (test (nodes g4) @[1 2 3 4])
     (test (edges g4) @[[1 2] [1 3] [2 1] [2 3] [3 1] [3 2]])
     (test (nodes g5) @[2 8 3 4 1 9 5 6 7])
@@ -52,7 +52,7 @@
     (test (has-node? g1 4) true)
     (test (has-edge? g1 [1 2]) true)
     (test (has-node? g1 5) false)
-    (test (has-edge? g1 [2 1]) false)))                                          
+    (test (has-edge? g1 [2 1]) false)))
 
 (deftest "loom-simple-weighted-graph-test"
   (let [g1 (weighted-graph [1 2 77] [1 3 88] [2 3 99] 4)
@@ -103,7 +103,7 @@
     (test (has-node? g1 4) true)
     (test (has-edge? g1 [1 2]) true)
     (test (has-node? g1 5) false)
-    (test (has-edge? g1 [2 1]) false)))                                          
+    (test (has-edge? g1 [2 1]) false)))
 
-(deftest final-time 
+(deftest final-time
   (print "Elapsed time: " (- (os/clock) start) " seconds"))

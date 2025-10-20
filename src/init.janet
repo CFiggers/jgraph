@@ -18,6 +18,7 @@
 (setdyn 'weighted-edge-schema nil)
 (setdyn 'edge-schema nil)
 (setdyn 'node-schema nil)
+(setdyn 'attr-node-schema nil)
 
 (setdyn 'src nil)
 (setdyn 'dest nil)

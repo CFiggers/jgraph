@@ -72,8 +72,8 @@
   (test (attr-node-schema @[:a @[:c :d]]) false)
   (test (attr-node-schema false) false)
   (test (attr-node-schema nil) false)
-
-  (test (attr-node-schema @[:a {:value 2}]) true))
+  
+  (test (attr-node-schema [:a @{:value 2}]) true))
 
 (deftest "graph?"
   (test (graph? Graph) true)
@@ -135,7 +135,7 @@
   (def test-graph-2 (defgraph))
   (add-edges test-graph-2 [:a :b] [:b :c] [:b :d])
   (make-weighted! test-graph-2 4)
-  (test test-graph-2 @{:adj @{:a @{:b 4} :b @{:a 4 :c 4 :d 4} :c @{:b 4} :d @{:b 4}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{:a true :b true :c true :d true}}))
+  (test test-graph-2 @{:adj @{ :a @{:b 4} :b @{:a 4 :c 4 :d 4} :c @{:b 4} :d @{:b 4}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{ :a true :b true :c true :d true}}))
 
 (deftest "make-weighted!, existing unweighted digraph"
   (def test-graph-1 (defgraph))
@@ -187,12 +187,12 @@
 (deftest "add-nodes"
   (def test-graph (defgraph))
   (add-nodes test-graph :a :b :c 1 2 3 ["a" "b"] "c")
-  (test test-graph @{:adj @{} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{1 true 2 true 3 true "c" true :a true :b true :c true ["a" "b"] true}}))
+  (test test-graph @{:adj @{} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ 1 true 2 true 3 true "c" true :a true :b true :c true ["a" "b"] true}}))
 
 (deftest "has-node?"
   (def test-graph (defgraph))
   (add-nodes test-graph :a :b :c 1 2 3 ["a" "b"] "c")
-  (test test-graph @{:adj @{} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{1 true 2 true 3 true "c" true :a true :b true :c true ["a" "b"] true}})
+  (test test-graph @{:adj @{} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ 1 true 2 true 3 true "c" true :a true :b true :c true ["a" "b"] true}})
   (test (has-node? test-graph ["a" "b"]) true)
   (test (has-node? test-graph :d) false))
 
@@ -252,12 +252,12 @@
   (add-edges test-graph [:a :b] [:a :c] [:c :d])
   (remove-nodes-succ test-graph :c)
   (test test-graph
-        @{:adj @{:a @{:b true :c true} :c @{}}
-          :attrs @{}
-          :in @{:b @{:a true}
-                :c @{:a true}}
-          :metadata @{:digraph true :graph true}
-          :nodeset @{:a true :b true :c true}}))
+    @{:adj @{:a @{:b true :c true} :c @{}}
+      :attrs @{}
+      :in @{:b @{:a true}
+            :c @{:a true}}
+      :metadata @{:digraph true :graph true}
+      :nodeset @{:a true :b true :c true}}))
 
 (deftest "remove-nodes-pred"
   (def test-graph (defgraph))
@@ -265,17 +265,17 @@
   (add-edges test-graph [:a :b] [:a :c] [:c :d])
   (remove-nodes-pred test-graph :c)
   (test test-graph
-        @{:adj @{:b @{} :c @{:d true}}
-          :attrs @{}
-          :in @{:d @{:c true}}
-          :metadata @{:digraph true :graph true}
-          :nodeset @{:b true :c true :d true}}))
+    @{:adj @{:b @{} :c @{:d true}}
+      :attrs @{}
+      :in @{:d @{:c true}}
+      :metadata @{:digraph true :graph true}
+      :nodeset @{:b true :c true :d true}}))
 
 (deftest "remove-nodes-prim"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
   (remove-nodes-prim test-graph [:a] [:b :c])
-  (test test-graph
+  (test test-graph 
         @{:adj @{:a @{:b true :c true}
                  :b @{:c true}
                  :c @{:b true}}
@@ -298,11 +298,11 @@
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
   (remove-nodes test-graph :c)
   (test test-graph
-        @{:adj @{:a @{:b true} :b @{:a true}}
-          :attrs @{}
-          :in @{}
-          :metadata @{:graph true}
-          :nodeset @{:a true :b true}}))
+    @{:adj @{:a @{:b true} :b @{:a true}}
+      :attrs @{}
+      :in @{}
+      :metadata @{:graph true}
+      :nodeset @{:a true :b true}}))
 
 (deftest "remove-nodes, in a list"
   (def test-graph (defgraph))
@@ -328,11 +328,11 @@
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
   (remove-nodes test-graph [:a])
   (test test-graph
-        @{:adj @{:b @{:c true} :c @{}}
-          :attrs @{}
-          :in @{:c @{:b true}}
-          :metadata @{:digraph true :graph true}
-          :nodeset @{:b true :c true}}))
+    @{:adj @{:b @{:c true} :c @{}}
+      :attrs @{}
+      :in @{:c @{:b true}}
+      :metadata @{:digraph true :graph true}
+      :nodeset @{:b true :c true}}))
 
 (deftest "remove-nodes, digraph, in a list, 2"
   (def test-graph (defgraph))
@@ -340,14 +340,14 @@
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
   (remove-nodes test-graph [:c])
   (test test-graph
-        @{:adj @{:a @{:b true} :b @{}}
-          :attrs @{}
-          :in @{:b @{:a true}}
-          :metadata @{:digraph true :graph true}
-          :nodeset @{:a true :b true}}))
+    @{:adj @{:a @{:b true} :b @{}}
+      :attrs @{}
+      :in @{:b @{:a true}}
+      :metadata @{:digraph true :graph true}
+      :nodeset @{:a true :b true}}))
 
 (deftest "out-edges, fails if `g` is not a valid graph"
-  (test-error (out-edges :fails :a) "First argument to `out-edges` must be a valid graph. Got: :fails"))
+  (test-error (out-edges :fails :a) "First argument to `edges` must be a valid graph. Got: :fails"))
 
 (deftest "out-edges, fails if `node` not member of `g`"
   (def test-graph (defgraph))
@@ -438,7 +438,13 @@
 (deftest "edges"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-  (test (edges test-graph) @[[:b :c] [:b :a] [:a :b] [:a :c] [:c :b] [:c :a]]))
+  (test (edges test-graph)
+    @[[:b :c]
+      [:b :a]
+      [:a :b]
+      [:a :c]
+      [:c :b]
+      [:c :a]]))
 
 (deftest "edges, digraph"
   ((def test-graph (defgraph))
@@ -450,7 +456,13 @@
   (def test-graph (defgraph))
   (make-weighted! test-graph)
   (add-edges test-graph [:a :b 5] [:b :c 6] [:a :c 7])
-  (test (edges test-graph) @[[:b :c] [:b :a] [:a :b] [:a :c] [:c :b] [:c :a]]))
+  (test (edges test-graph)
+    @[[:b :c]
+      [:b :a]
+      [:a :b]
+      [:a :c]
+      [:c :b]
+      [:c :a]]))
 
 (deftest "edges, weighted digraph"
   ((def test-graph (defgraph))
@@ -605,14 +617,14 @@
   (def test-graph (defgraph))
   (make-digraph! test-graph)
   (add-edges test-graph [:a :b] [:a :c] [:c :d])
-  (test (transpose-digraph test-graph) @{:adj @{:b @{:a true} :c @{:a true} :d @{:c true}} :attrs @{} :in @{:a @{:b true :c true} :c @{:d true}} :metadata @{:digraph true :graph true} :nodeset @{:a true :b true :c true :d true}}))
+  (test (transpose-digraph test-graph) @{:adj @{:b @{:a true} :c @{:a true} :d @{:c true}} :attrs @{} :in @{:a @{:b true :c true} :c @{:d true}} :metadata @{:digraph true :graph true} :nodeset @{ :a true :b true :c true :d true}}))
 
 (deftest "transpose-digraph, weighted digraph"
   (def test-graph (defgraph))
   (make-digraph! test-graph)
   (make-weighted! test-graph)
   (add-edges test-graph [:a :b 100] [:a :c 200] [:c :d 300])
-  (test (transpose-digraph test-graph) @{:adj @{:b @{:a 100} :c @{:a 200} :d @{:c 300}} :attrs @{} :in @{:a @{:b 100 :c 200} :c @{:d 300}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{:a true :b true :c true :d true}}))
+  (test (transpose-digraph test-graph) @{:adj @{:b @{:a 100} :c @{:a 200} :d @{:c 300}} :attrs @{} :in @{:a @{:b 100 :c 200} :c @{:d 300}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{ :a true :b true :c true :d true}}))
 
 (deftest "subgraph"
   (def test-graph (defgraph))
@@ -623,68 +635,68 @@
 (deftest "add-path"
   (def test-graph (defgraph))
   (add-path test-graph [:a :b :c :d :e])
-  (test test-graph @{:adj @{:a @{:b true} :b @{:a true :c true} :c @{:b true :d true} :d @{:c true :e true} :e @{:d true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true :d true :e true}}))
+  (test test-graph @{:adj @{ :a @{:b true} :b @{:a true :c true} :c @{:b true :d true} :d @{:c true :e true} :e @{:d true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ :a true :b true :c true :d true :e true}}))
 
 (deftest "add-path, two of them"
   (def test-graph (defgraph))
   (add-path test-graph [:a :b :c :d :e])
   (add-path test-graph [:a :b :c :f :g])
-  (test test-graph @{:adj @{:a @{:b true} :b @{:a true :c true} :c @{:b true :d true :f true} :d @{:c true :e true} :e @{:d true} :f @{:c true :g true} :g @{:f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true :d true :e true :f true :g true}}))
+  (test test-graph @{:adj @{ :a @{:b true} :b @{:a true :c true} :c @{:b true :d true :f true} :d @{:c true :e true} :e @{:d true} :f @{:c true :g true} :g @{:f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ :a true :b true :c true :d true :e true :f true :g true}}))
 
 (deftest "add-path, with digraph"
   (def test-graph (defgraph))
   (make-digraph! test-graph)
   (add-path test-graph [:a :b :c :d :e])
-  (test test-graph @{:adj @{:a @{:b true} :b @{:c true} :c @{:d true} :d @{:e true}} :attrs @{} :in @{:b @{:a true} :c @{:b true} :d @{:c true} :e @{:d true}} :metadata @{:digraph true :graph true} :nodeset @{:a true :b true :c true :d true :e true}}))
+  (test test-graph @{:adj @{ :a @{:b true} :b @{:c true} :c @{:d true} :d @{:e true}} :attrs @{} :in @{ :b @{:a true} :c @{:b true} :d @{:c true} :e @{:d true}} :metadata @{:digraph true :graph true} :nodeset @{ :a true :b true :c true :d true :e true}}))
 
 (deftest "add-path, with weighted graph"
   (def test-graph (defgraph))
   (make-weighted! test-graph)
   (add-path test-graph [:a :b :c :d :e])
-  (test test-graph @{:adj @{:a @{:b 1} :b @{:a 1 :c 1} :c @{:b 1 :d 1} :d @{:c 1 :e 1} :e @{:d 1}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{:a true :b true :c true :d true :e true}}))
+  (test test-graph @{:adj @{ :a @{:b 1} :b @{:a 1 :c 1} :c @{:b 1 :d 1} :d @{:c 1 :e 1} :e @{:d 1}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{ :a true :b true :c true :d true :e true}}))
 
 (deftest "add-path, with weighted digraph"
   (def test-graph (defgraph))
   (make-digraph! test-graph)
   (make-weighted! test-graph)
   (add-path test-graph [:a :b :c :d :e])
-  (test test-graph @{:adj @{:a @{:b 1} :b @{:c 1} :c @{:d 1} :d @{:e 1}} :attrs @{} :in @{:b @{:a 1} :c @{:b 1} :d @{:c 1} :e @{:d 1}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{:a true :b true :c true :d true :e true}}))
+  (test test-graph @{:adj @{ :a @{:b 1} :b @{:c 1} :c @{:d 1} :d @{:e 1}} :attrs @{} :in @{ :b @{:a 1} :c @{:b 1} :d @{:c 1} :e @{:d 1}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{ :a true :b true :c true :d true :e true}}))
 
 (deftest "add-cycle"
   (def test-graph (defgraph))
   (add-cycle test-graph [:a :b :c :d :e])
-  (test test-graph @{:adj @{:a @{:b true :e true} :b @{:a true :c true} :c @{:b true :d true} :d @{:c true :e true} :e @{:a true :d true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true :d true :e true}}))
+  (test test-graph @{:adj @{ :a @{:b true :e true} :b @{:a true :c true} :c @{:b true :d true} :d @{:c true :e true} :e @{:a true :d true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ :a true :b true :c true :d true :e true}}))
 
 (deftest "add-cycle, two of them"
   (def test-graph (defgraph))
   (add-cycle test-graph [:a :b :c :d :e])
   (add-cycle test-graph [:a :b :c :f :g])
-  (test test-graph @{:adj @{:a @{:b true :e true :g true} :b @{:a true :c true} :c @{:b true :d true :f true} :d @{:c true :e true} :e @{:a true :d true} :f @{:c true :g true} :g @{:a true :f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true :d true :e true :f true :g true}}))
+  (test test-graph @{:adj @{ :a @{:b true :e true :g true} :b @{:a true :c true} :c @{:b true :d true :f true} :d @{:c true :e true} :e @{:a true :d true} :f @{:c true :g true} :g @{:a true :f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ :a true :b true :c true :d true :e true :f true :g true}}))
 
 (deftest "add-cycle, with digraph"
   (def test-graph (defgraph))
   (make-digraph! test-graph)
   (add-cycle test-graph [:a :b :c :d :e])
-  (test test-graph @{:adj @{:a @{:b true} :b @{:c true} :c @{:d true} :d @{:e true} :e @{:a true}} :attrs @{} :in @{:a @{:e true} :b @{:a true} :c @{:b true} :d @{:c true} :e @{:d true}} :metadata @{:digraph true :graph true} :nodeset @{:a true :b true :c true :d true :e true}}))
+  (test test-graph @{:adj @{ :a @{:b true} :b @{:c true} :c @{:d true} :d @{:e true} :e @{:a true}} :attrs @{} :in @{ :a @{:e true} :b @{:a true} :c @{:b true} :d @{:c true} :e @{:d true}} :metadata @{:digraph true :graph true} :nodeset @{ :a true :b true :c true :d true :e true}}))
 
 (deftest "add-cycle, with weighted graph"
   (def test-graph (defgraph))
   (make-weighted! test-graph)
   (add-cycle test-graph [:a :b :c :d :e])
-  (test test-graph @{:adj @{:a @{:b 1 :e 1} :b @{:a 1 :c 1} :c @{:b 1 :d 1} :d @{:c 1 :e 1} :e @{:a 1 :d 1}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{:a true :b true :c true :d true :e true}}))
+  (test test-graph @{:adj @{ :a @{:b 1 :e 1} :b @{:a 1 :c 1} :c @{:b 1 :d 1} :d @{:c 1 :e 1} :e @{:a 1 :d 1}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{ :a true :b true :c true :d true :e true}}))
 
 (deftest "add-cycle, with weighted digraph"
   (def test-graph (defgraph))
   (make-digraph! test-graph)
   (make-weighted! test-graph)
   (add-cycle test-graph [:a :b :c :d :e])
-  (test test-graph @{:adj @{:a @{:b 1} :b @{:c 1} :c @{:d 1} :d @{:e 1} :e @{:a 1}} :attrs @{} :in @{:a @{:e 1} :b @{:a 1} :c @{:b 1} :d @{:c 1} :e @{:d 1}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{:a true :b true :c true :d true :e true}}))
+  (test test-graph @{:adj @{ :a @{:b 1} :b @{:c 1} :c @{:d 1} :d @{:e 1} :e @{:a 1}} :attrs @{} :in @{ :a @{:e 1} :b @{:a 1} :c @{:b 1} :d @{:c 1} :e @{:d 1}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{ :a true :b true :c true :d true :e true}}))
 
 (deftest "build-graph, with one graph input"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-
-  (test (build-graph (defgraph) test-graph)
+  
+  (test (build-graph (defgraph) test-graph) 
         @{:adj @{:a @{:b true :c true}
                  :b @{:a true :c true}
                  :c @{:a true :b true}}
@@ -696,155 +708,158 @@
 (deftest "build-graph, with two graphs as input"
   (def test-graph1 (defgraph))
   (add-edges test-graph1 [:a :b] [:b :c] [:a :c])
-
+  
   (def test-graph2 (defgraph))
   (add-edges test-graph2 [:d :e] [:e :f] [:f :g] [:f :h])
 
-  (test (build-graph (defgraph) test-graph1 test-graph2) @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true} :d @{:e true} :e @{:d true :f true} :f @{:e true :g true :h true} :g @{:f true} :h @{:f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true :d true :e true :f true :g true :h true}}))
+  (test (build-graph (defgraph) test-graph1 test-graph2) @{:adj @{ :a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true} :d @{:e true} :e @{:d true :f true} :f @{:e true :g true :h true} :g @{:f true} :h @{:f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ :a true :b true :c true :d true :e true :f true :g true :h true}}))
 
 (deftest "build-graph, with one digraph input"
   (def test-graph (defgraph))
   (make-digraph! test-graph)
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-
+  
   (test (build-graph (defgraph) test-graph) @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}))
 
 (deftest "build-graph, one graph and one digraph as input"
   (def test-graph1 (defgraph))
   (make-digraph! test-graph1)
   (add-edges test-graph1 [:a :b] [:b :c] [:a :c])
-
+  
   (def test-graph2 (defgraph))
   (add-edges test-graph2 [:d :e] [:e :f] [:f :g] [:f :h])
 
-  (test (build-graph (defgraph) test-graph1 test-graph2) @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true} :d @{:e true} :e @{:d true :f true} :f @{:e true :g true :h true} :g @{:f true} :h @{:f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true :d true :e true :f true :g true :h true}}))
+  (test (build-graph (defgraph) test-graph1 test-graph2) @{:adj @{ :a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true} :d @{:e true} :e @{:d true :f true} :f @{:e true :g true :h true} :g @{:f true} :h @{:f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ :a true :b true :c true :d true :e true :f true :g true :h true}}))
 
 (deftest "build-graph, with two digraphs as input"
   (def test-graph1 (defgraph))
   (make-digraph! test-graph1)
   (add-edges test-graph1 [:a :b] [:b :c] [:a :c])
-
+  
   (def test-graph2 (defgraph))
   (make-digraph! test-graph2)
   (add-edges test-graph2 [:d :e] [:e :f] [:f :g] [:f :h])
 
-  (test (build-graph (defgraph) test-graph1 test-graph2) @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true} :d @{:e true} :e @{:d true :f true} :f @{:e true :g true :h true} :g @{:f true} :h @{:f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true :d true :e true :f true :g true :h true}}))
+  (test (build-graph (defgraph) test-graph1 test-graph2) @{:adj @{ :a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true} :d @{:e true} :e @{:d true :f true} :f @{:e true :g true :h true} :g @{:f true} :h @{:f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ :a true :b true :c true :d true :e true :f true :g true :h true}}))
 
 (deftest "build-graph, with one weighted graph input"
   (def test-graph (defgraph))
   (make-digraph! test-graph)
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-
+  
   (test (build-graph (defgraph) test-graph) @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}))
 
 (deftest "build-graph, one graph and one weighted graph as input"
   (def test-graph1 (defgraph))
   (make-weighted! test-graph1)
   (add-edges test-graph1 [:a :b 1] [:b :c 1] [:a :c 1])
-
+  
   (def test-graph2 (defgraph))
   (add-edges test-graph2 [:d :e] [:e :f] [:f :g] [:f :h])
 
-  (test (build-graph (defgraph) test-graph1 test-graph2) @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true} :d @{:e true} :e @{:d true :f true} :f @{:e true :g true :h true} :g @{:f true} :h @{:f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true :d true :e true :f true :g true :h true}}))
+  (test (build-graph (defgraph) test-graph1 test-graph2) @{:adj @{ :a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true} :d @{:e true} :e @{:d true :f true} :f @{:e true :g true :h true} :g @{:f true} :h @{:f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ :a true :b true :c true :d true :e true :f true :g true :h true}}))
 
 (deftest "build-graph, with two weighted graphs as input"
   (def test-graph1 (defgraph))
   (make-weighted! test-graph1)
   (add-edges test-graph1 [:a :b 1] [:b :c 1] [:a :c 1])
-
+  
   (def test-graph2 (defgraph))
   (make-weighted! test-graph2)
   (add-edges test-graph2 [:d :e 1] [:e :f 1] [:f :g 1] [:f :h 1])
 
-  (test (build-graph (defgraph) test-graph1 test-graph2) @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true} :d @{:e true} :e @{:d true :f true} :f @{:e true :g true :h true} :g @{:f true} :h @{:f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true :d true :e true :f true :g true :h true}}))
+  (test (build-graph (defgraph) test-graph1 test-graph2) @{:adj @{ :a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true} :d @{:e true} :e @{:d true :f true} :f @{:e true :g true :h true} :g @{:f true} :h @{:f true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ :a true :b true :c true :d true :e true :f true :g true :h true}}))
 
 (deftest "build-graph, weighted graph as start, unweighted graph as input"
   (def test-graph1 (defgraph))
   (make-weighted! test-graph1)
   (add-edges test-graph1 [:a :b 2] [:b :c 2] [:a :c 2])
-
-  (def test-graph2 (defgraph))
+  
+  (def test-graph2 (defgraph)) 
   (add-edges test-graph2 [:d :e] [:e :f] [:f :g] [:f :h])
 
-  (test (build-graph test-graph1 test-graph2) @{:adj @{:a @{:b 2 :c 2} :b @{:a 2 :c 2} :c @{:a 2 :b 2} :d @{:e 1} :e @{:d 1 :f 1} :f @{:e 1 :g 1 :h 1} :g @{:f 1} :h @{:f 1}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{:a true :b true :c true :d true :e true :f true :g true :h true}}))
+  (test (build-graph test-graph1 test-graph2) @{:adj @{ :a @{:b 2 :c 2} :b @{:a 2 :c 2} :c @{:a 2 :b 2} :d @{:e 1} :e @{:d 1 :f 1} :f @{:e 1 :g 1 :h 1} :g @{:f 1} :h @{:f 1}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{ :a true :b true :c true :d true :e true :f true :g true :h true}}))
 
 (deftest "build-graph, weighted graph as start, weighted graph as input"
   (def test-graph1 (defgraph))
   (make-weighted! test-graph1)
   (add-edges test-graph1 [:a :b 1] [:b :c 1] [:a :c 1])
-
+  
   (def test-graph2 (defgraph))
   (make-weighted! test-graph2)
   (add-edges test-graph2 [:d :e 1] [:e :f 1] [:f :g 1] [:f :h 1])
 
-  (test (build-graph test-graph1 test-graph2) @{:adj @{:a @{:b 1 :c 1} :b @{:a 1 :c 1} :c @{:a 1 :b 1} :d @{:e 1} :e @{:d 1 :f 1} :f @{:e 1 :g 1 :h 1} :g @{:f 1} :h @{:f 1}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{:a true :b true :c true :d true :e true :f true :g true :h true}}))
+  (test (build-graph test-graph1 test-graph2) @{:adj @{ :a @{:b 1 :c 1} :b @{:a 1 :c 1} :c @{:a 1 :b 1} :d @{:e 1} :e @{:d 1 :f 1} :f @{:e 1 :g 1 :h 1} :g @{:f 1} :h @{:f 1}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{ :a true :b true :c true :d true :e true :f true :g true :h true}}))
+
+
+
 
 
 (deftest "build-graph, with one edge input"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-
+  
   (test (build-graph (defgraph) [:c :d]) @{:adj @{:c @{:d true} :d @{:c true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:c true :d true}}))
 
 (deftest "build-graph, with two edges as input"
   (def test-graph1 (defgraph))
-  (add-edges test-graph1 [:a :b] [:b :c] [:a :c])
+  (add-edges test-graph1 [:a :b] [:b :c] [:a :c]) 
 
   (test (build-graph (defgraph) [:c :d] [:d :e]) @{:adj @{:c @{:d true} :d @{:c true :e true} :e @{:d true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:c true :d true :e true}}))
 
 (deftest "build-graph, with one graph and one edge as input"
-  (def test-graph1 (defgraph))
+  (def test-graph1 (defgraph)) 
   (add-edges test-graph1 [:a :b] [:b :c] [:a :c])
-
+  
   (def test-graph2 (defgraph))
   (add-edges test-graph2 [:d :e] [:e :f] [:f :g] [:f :h])
-
-  (test (build-graph test-graph1 test-graph2 [:z :x]) @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true} :d @{:e true} :e @{:d true :f true} :f @{:e true :g true :h true} :g @{:f true} :h @{:f true} :x @{:z true} :z @{:x true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true :d true :e true :f true :g true :h true :x true :z true}}))
+  
+  (test (build-graph test-graph1 test-graph2 [:z :x]) @{:adj @{ :a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true} :d @{:e true} :e @{:d true :f true} :f @{:e true :g true :h true} :g @{:f true} :h @{:f true} :x @{:z true} :z @{:x true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ :a true :b true :c true :d true :e true :f true :g true :h true :x true :z true}}))
 
 (deftest "build-graph, strings and keywords as input"
-  (def test-graph1 (defgraph))
-  (add-edges test-graph1 [:a :b] [:b :c] [:a :c])
+  (def test-graph1 (defgraph)) 
+  (add-edges test-graph1 [:a :b] [:b :c] [:a :c]) 
 
-  (test (build-graph test-graph1 "this is a string" :keyword) @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{"this is a string" true :a true :b true :c true :keyword true}}))
+  (test (build-graph test-graph1 "this is a string" :keyword) @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ "this is a string" true :a true :b true :c true :keyword true}}))
 
 (deftest "build-graph, graph as start, adjacency map as input"
   (def test-graph (defgraph))
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-
+  
   (test (build-graph (defgraph) (test-graph :adj)) @{:adj @{:a @{:b true :c true} :b @{:a true :c true} :c @{:a true :b true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{:a true :b true :c true}}))
 
 (deftest "build-graph, digraph as start, adjacency map as input"
   (def test-graph (defgraph))
   (make-digraph! test-graph)
   (add-edges test-graph [:a :b] [:b :c] [:a :c])
-
+  
   (test (build-graph (make-digraph! (defgraph)) (test-graph :adj)) @{:adj @{:a @{:b true :c true} :b @{:c true}} :attrs @{} :in @{:b @{:a true} :c @{:a true :b true}} :metadata @{:digraph true :graph true} :nodeset @{:a true :b true :c true}}))
 
 (deftest "build-graph, example on loom README"
-  (test (build-graph (defgraph) [1 2] [2 3] {3 {4 true} 5 {6 true 7 true}} 7 8 9) @{:adj @{1 @{2 true} 2 @{1 true 3 true} 3 @{2 true 4 true} 4 @{3 true} 5 @{6 true 7 true} 6 @{5 true} 7 @{5 true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))
+  (test (build-graph (defgraph) [1 2] [2 3] {3 {4 true} 5 {6 true 7 true}} 7 8 9) @{:adj @{ 1 @{2 true} 2 @{1 true 3 true} 3 @{2 true 4 true} 4 @{3 true} 5 @{6 true 7 true} 6 @{5 true} 7 @{5 true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ 1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))
 
 (deftest "graph"
-  (test (graph [1 2] [2 3] {3 {4 true} 5 {6 true 7 true}} 7 8 9) @{:adj @{1 @{2 true} 2 @{1 true 3 true} 3 @{2 true 4 true} 4 @{3 true} 5 @{6 true 7 true} 6 @{5 true} 7 @{5 true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))
+  (test (graph [1 2] [2 3] {3 {4 true} 5 {6 true 7 true}} 7 8 9) @{:adj @{ 1 @{2 true} 2 @{1 true 3 true} 3 @{2 true 4 true} 4 @{3 true} 5 @{6 true 7 true} 6 @{5 true} 7 @{5 true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{ 1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))
 
 (deftest "graph with edge labels, works"
   (test (graph [1 2 "this"] [2 3 "that"] [2 3 "the other"])
-        @{:adj @{1 @{2 @["this"]}
-                 2 @{1 @["this"] 3 @["that" "the other"]}
-                 3 @{2 @["that" "the other"]}}
-          :attrs @{}
-          :in @{}
-          :metadata @{:graph true}
-          :nodeset @{1 true 2 true 3 true}}))
+    @{:adj @{1 @{2 @["this"]}
+             2 @{1 @["this"] 3 @["that" "the other"]}
+             3 @{2 @["that" "the other"]}}
+      :attrs @{}
+      :in @{}
+      :metadata @{:graph true}
+      :nodeset @{1 true 2 true 3 true}}))
 
 (deftest "digraph with edge labels, works"
   (test (digraph [1 2 "this"] [2 3 "that"] [2 3 "the other"])
-        @{:adj @{1 @{2 @["this"]}
-                 2 @{3 @["that" "the other"]}}
-          :attrs @{}
-          :in @{2 @{1 @["this"]}
-                3 @{2 @["that" "the other"]}}
-          :metadata @{:digraph true :graph true}
-          :nodeset @{1 true 2 true 3 true}}))
+    @{:adj @{1 @{2 @["this"]}
+             2 @{3 @["that" "the other"]}}
+      :attrs @{}
+      :in @{2 @{1 @["this"]}
+            3 @{2 @["that" "the other"]}}
+      :metadata @{:digraph true :graph true}
+      :nodeset @{1 true 2 true 3 true}}))
 
 (deftest "graph with edge labels, falsey"
   (test (graph [1 2 false] [2 3 nil]) @{:adj @{1 @{2 true} 2 @{1 true 3 true} 3 @{2 true}} :attrs @{} :in @{} :metadata @{:graph true} :nodeset @{1 true 2 true 3 true}}))
@@ -853,10 +868,10 @@
   (test (digraph [1 2] [2 3] {3 {4 true} 5 {6 true 7 true}} 7 8 9) @{:adj @{1 @{2 true} 2 @{3 true} 3 @{4 true} 5 @{6 true 7 true}} :attrs @{} :in @{2 @{1 true} 3 @{2 true} 4 @{3 true} 6 @{5 true} 7 @{5 true}} :metadata @{:digraph true :graph true} :nodeset @{1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))
 
 (deftest "weighted-graph"
-  (test (weighted-graph [1 2 100] [2 3 100] {3 {4 100} 5 {6 100 7 100}} 7 8 9) @{:adj @{1 @{2 100} 2 @{1 100 3 100} 3 @{2 100 4 100} 4 @{3 100} 5 @{6 100 7 100} 6 @{5 100} 7 @{5 100}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))
+  (test (weighted-graph [1 2 100] [2 3 100] {3 {4 100} 5 {6 100 7 100}} 7 8 9) @{:adj @{ 1 @{2 100} 2 @{1 100 3 100} 3 @{2 100 4 100} 4 @{3 100} 5 @{6 100 7 100} 6 @{5 100} 7 @{5 100}} :attrs @{} :in @{} :metadata @{:graph true :weighted true} :nodeset @{ 1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))
 
 (deftest "weighted-digraph"
-  (test (weighted-digraph [1 2 100] [2 3 100] {3 {4 100} 5 {6 100 7 100}} 7 8 9) @{:adj @{1 @{2 100} 2 @{3 100} 3 @{4 100} 5 @{6 100 7 100}} :attrs @{} :in @{2 @{1 100} 3 @{2 100} 4 @{3 100} 6 @{5 100} 7 @{5 100}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))
+  (test (weighted-digraph [1 2 100] [2 3 100] {3 {4 100} 5 {6 100 7 100}} 7 8 9) @{:adj @{ 1 @{2 100} 2 @{3 100} 3 @{4 100} 5 @{6 100 7 100}} :attrs @{} :in @{ 2 @{1 100} 3 @{2 100} 4 @{3 100} 6 @{5 100} 7 @{5 100}} :metadata @{:digraph true :graph true :weighted true} :nodeset @{ 1 true 2 true 3 true 4 true 5 true 6 true 7 true 8 true 9 true}}))
 
-(deftest final-time
+(deftest final-time 
   (print "Elapsed time: " (- (os/clock) start) " seconds"))

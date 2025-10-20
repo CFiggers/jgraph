@@ -10,8 +10,8 @@
 
 (defn iterate :is-private [fun init]
   (coro (var x init)
-    (forever (yield x)
-      (set x (fun x)))))
+        (forever (yield x)
+                 (set x (fun x)))))
 
 (defn trace-path
   "Using a map of nodes-to-preds, traces a node's family tree back to the
@@ -25,11 +25,11 @@
   [preds path]
   (let [path (array/slice path)
         this-node (array/peek path)
-        partish |(seq [i :range [0 (dec (length $))]]
-                   (array/slice $ i (+ 2 i)))]
-    @[path ;(->> (preds this-node)
-                 (filter |(all (fn [edge] (not= edge [this-node $]))
-                               (partish path)))
+        partish |(seq [i :range [0 (dec (length $))]] 
+                  (array/slice $ i (+ 2 i)))] 
+    @[path ;(->> (preds this-node) 
+                 (filter |(all (fn [edge] (not= edge [this-node $]))  
+                               (partish path))) 
                  (mapcat |(paths preds [;path $])))]))
 
 (defn trace-paths
@@ -43,11 +43,11 @@
   form {node [successors]}"
   [preds]
   (reduce
-    (fn [span [n p]]
-      (if p
-        (put span p [;(or (span p) []) n])
-        span))
-    @{} (pairs preds)))
+   (fn [span [n p]]
+     (if p
+       (put span p [;(or (span p) []) n])
+       span)) 
+   @{} (pairs preds)))
 
 ###
 ### Depth-first traversal
@@ -91,17 +91,17 @@
 #                (recur seen explored result (conj stack (first us))))
 #              (recur seen (conj explored v) (conj result v) (pop stack)))))))) 
 
-(defn topsort-dfs
+(defn topsort-dfs 
   ``
   Depth-first topological sort of a digraph. Digraph must be acyclic.
   ``
   [graph]
   (var visited @[])
   (var stack @[])
-
-  (defn dfs [node]
+  
+  (defn dfs [node] 
     (unless (index-of node visited)
-      (array/push visited node)
+      (array/push visited node) 
       (each s (successors graph node)
         (dfs s))
       (array/push stack node)))

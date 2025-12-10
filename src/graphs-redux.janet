@@ -3,125 +3,244 @@
 (use ./deep-clone)
 (use ./traverse)
 
-(dataclass Node
-           :val :array)
+# Nodes
 
-(test node @node)
+(dataclass Node # :tested
+           :val :array
+           {:get |(($ :val) 0)
+            :v |(($ :val) 0)
+            :set (fn [self v]
+                   (put self :val @[])
+                   (put-in self [:val 0] v))})
 
-(def Nowhere (node @[]))
+# Edges
+
+#    Edge─────────────►Attr-Edge    
+#      │                   │
+#      ▼                   ▼
+#  Weighted-Edge──►Weighted-Attr-Edge 
+#       
 
 (dataclass Edge
-           :from [Node Nowhere]
-           :to [Node Nowhere]
+           :from Node
+           :to Node
            {:f |($ :from)
             :t |($ :to)})
 
-(def To-Nowhere (edge))
-
-(test To-Nowhere @{})
-(test (table/proto-flatten To-Nowhere)
-      @{:_name :Edge
-        :f @short-fn
-        :from @{}
-        :schema @{:f :method
-                  :from [pred node?]
-                  :t :method
-                  :to [pred node?]}
-        :t @short-fn
-        :to @{}
-        :type :Edge})
-
-(dataclass Weighted-edge
-           :weight :number)
-(table/setproto Weighted-edge Edge)
-
-(test (weighted-edge :weight 5) @{:weight 5})
-(test (table/proto-flatten (weighted-edge :weight 5))
-      @{:_name :Weighted-edge
-        :f @short-fn
-        :from @{}
-        :schema @{:weight :number}
-        :t @short-fn
-        :to @{}
-        :type :Weighted-edge
-        :weight 5})
-
-(def Weightless (weighted-edge))
+(dataclass Weighted-Edge
+           :from Node
+           :to Node
+           :weight [:number 1]
+           {:f |($ :from)
+            :t |($ :to)
+            :w |($ :weight)})
+(table/setproto Weighted-Edge Edge)
 
 (dataclass Attr-Edge
-           :attrs :table)
-(table/setproto Attr-edge Edge)
+           :from Node
+           :to Node
+           :attrs :table
+           {:f |($ :from)
+            :t |($ :to)
+            :as |($ :attrs)})
+(table/setproto Attr-Edge Edge)
 
 (dataclass Weighted-Attr-Edge
-           :attrs :table)
-(table/setproto Weighted-attr-edge Weighted-edge)
+           :from Node
+           :to Node
+           :weight [:number 1]
+           :attrs :table
+           {:f |($ :from)
+            :t |($ :to)
+            :as |($ :attrs)})
+(table/setproto Weighted-Attr-Edge Weighted-Edge)
 
-(test (table/proto-flatten (weighted-attr-edge))
-      @{:_name :Weighted-attr-edge
-        :attrs @{}
-        :f @short-fn
-        :from @{}
-        :schema @{:attrs :table}
-        :t @short-fn
-        :to @{}
-        :type :Weighted-attr-edge
-        :weight 0})
+# Graphs
 
-(test (edge? (weighted-attr-edge)) true)
-(test (weighted-edge? (weighted-attr-edge)) true)
-(test (weighted-attr-edge? (weighted-attr-edge)) true)
+#    Graph─────────────────►Weighted-Graph
+#      │ ╲                   │ ╲
+#      │  ╲                  │  ╲
+#      │   Attr-Graph─────────►Weighted-Attr-Graph
+#      │    │                │   │               
+#      ▼    │                ▼   │
+# Digraph───│──►Weighted-Digraph │
+#       ╲   │                 ╲  │
+#        ╲  ▼                  ╲ ▼
+#        Attr-Digraph────────►Weighted-Attr-Digraph
+#
 
 (dataclass Graph
            :metadata [:struct {:graph true}]
-           :nodeset :table
-           :adj :table
-           :in :table
-           :attrs :table)
+           :nodeset :table:k:Node:v:boolean
+           :adj :table)
 
-(test Graph
-      @{:_name :Graph
-        :adj @{}
-        :attrs @{}
-        :metadata {:graph true}
-        :nodeset @{}
-        :schema @{:adj :table
-                  :attrs :table
-                  :in :table
-                  :metadata :struct
-                  :nodeset :table}
-        :type :Graph})
-
-(test graph @graph)
-(test (graph? (graph)) true)
+(test (graph :nodeset @{(node :val @[:a]) true}) @{:nodeset @{@{:val :a} true}})
+(test (graph? (graph :nodeset @{(node :val @[:a]) true})) false)
+(test (graph? (graph :nodeset @{@{:val @[:a]} true})))
+(test-macro (assert-graph (graph :nodeset @{@{:val @[:a]} true})))
 
 (dataclass Digraph
            :metadata [:struct {:digraph true :graph true}]
+           :nodeset :table:k:Node:v:boolean
+           :adj :table
            :in :table)
 (table/setproto Digraph Graph)
 
-(test (table/proto-flatten (digraph))
-      @{:_name :Digraph
-        :adj @{}
-        :attrs @{}
-        :in @{}
-        :metadata {:digraph true :graph true}
-        :nodeset @{}
-        :schema @{:metadata :struct}
-        :type :Digraph})
-(test (get-in (digraph) [:metadata :graph]) true)
-(test (graph? (digraph)) true)
-
-(test (graph? (deep-clone (digraph))) true)
-(test (digraph? (deep-clone (digraph))) true)
-
 (dataclass Attr-Graph
            :metadata [:struct {:attr true :graph true}]
+           :nodeset :table:k:Node:v:boolean
+           :adj :table
            :attrs :table)
-(table/setproto Attr-graph Graph)
+(table/setproto Attr-Graph Graph)
 
-(test (graph? (attr-graph)) true)
-(test (attr-graph? (attr-graph)) true)
-(test (attr-graph? (graph)) false)
+(dataclass Weighted-Graph
+           :metadata [:struct {:weighted true :graph true}]
+           :nodeset :table:k:Node:v:boolean
+           :adj :table)
+(table/setproto Weighted-Graph Graph)
+
+(dataclass Attr-Digraph
+           :metadata [:struct {:attr true :digraph true :graph true}]
+           :nodeset :table:k:Node:v:boolean
+           :adj :table
+           :attrs :table)
+(table/setproto Attr-Digraph Digraph)
+
+(dataclass Weighted-Digraph
+           :metadata [:struct {:weighted true :digraph true :graph true}]
+           :nodeset :table:k:Node:v:boolean
+           :adj :table)
+(table/setproto Weighted-Digraph Digraph)
+
+(dataclass Weighted-Attr-Graph
+           :metadata [:struct {:weighted true :attr true :graph true}]
+           :nodeset :table:k:Node:v:boolean
+           :adj :table
+           :attrs :table)
+(table/setproto Weighted-Attr-Graph Attr-Graph)
+
+(dataclass Weighted-Attr-Digraph
+           :metadata [:struct {:weighted true :attr true :digraph true :graph true}]
+           :nodeset :table:k:Node:v:boolean
+           :adj :table
+           :attrs :table)
+(table/setproto Weighted-Attr-Digraph Attr-Digraph)
+
+## Add Graph/Edge Archetypes 
+
+(defn add-digraph
+  ``
+  Add Digraph features to an existing graph, `g`. If `g` is already a digraph, returns `g` unmodified. 
+
+  Existing edges are treated as bi-directional pairs of directional edges between two points. In other words, each edge is
+    a. Converted to a one-directional edge 
+    b. Matched with a duplicate pointing in the other direction.
+  ``
+  [g]
+  (assert-graph g)
+  (put g :in (g :adj))
+  (cond
+    (digraph? g) g
+    (weighted-attr-graph? g)
+    (do (put g :metadata {:digraph true :attr true :weighted true :graph true})
+      (assert-digraph (table/setproto g Weighted-Attr-Digraph)))
+
+    (attr-graph? g)
+    (do (put g :metadata {:digraph true :attr true :graph true})
+      (assert-digraph (table/setproto g Weighted-Attr-Graph)))
+
+    (weighted-graph? g)
+    (do (put g :metadata {:digraph true :weighted true :graph true})
+      (assert-digraph (table/setproto g Weighted-Digraph)))
+
+    (do (put g :metadata {:digraph true :graph true})
+      (assert-digraph (table/setproto g Digraph)))))
+
+(defn add-attr-to-edge
+  ``
+  Add Attr Edge features to an existing edge, `e`. If `e` is already an Attr Edge, returns `e` unmodified.
+  ``
+  [e]
+  (assert-edge e)
+  (put e :attrs @{})
+  (cond
+    (attr-edge? e) e
+
+    (weighted-edge? e)
+    (assert-attr-edge (table/setproto e Weighted-Attr-Edge))
+
+    (assert-attr-edge (table/setproto e Weighted-Edge))))
+
+(defn add-attr
+  ``
+  Add Attr Graph features to an existing graph, `g`. If `g` is already an attr graph, returns `g` unmodified. 
+
+  Existing edges will have Attr Edge features added, if they did not have them already.
+  ``
+  [g]
+  (assert-graph g)
+  (put g :attrs @{})
+  (each e (keys (g :adj)) (add-attr-to-edge e))
+  (cond
+    (attr-graph? g) g
+    (weighted-digraph? g)
+    (do (put g :metadata {:attr true :digraph true :weighted true :graph true})
+      (assert-attr-graph (table/setproto g Weighted-Attr-Digraph)))
+
+    (digraph? g)
+    (do (put g :metadata {:attr true :digraph true :graph true})
+      (assert-attr-graph (table/setproto g Attr-Digraph)))
+
+    (weighted-graph? g)
+    (do (put g :metadata {:attr true :weighted true :graph true})
+      (assert-attr-graph (table/setproto g Weighted-Attr-Graph)))
+
+    (do (put g :metadata {:attr true :graph true})
+      (assert-attr-graph (table/setproto g Attr-Graph)))))
+
+(defn add-weighted-to-edge
+  ``
+  Add Weighted Edge features to an existing edge, `e`. If `e` is already a Weighted Edge, returns `e` unmodified.
+  ``
+  [e]
+  (assert-edge e)
+  (put e :weight 1)
+  (cond
+    (weighted-edge? e) e
+
+    (attr-edge? e)
+    (assert-weighted-edge (table/setproto e Weighted-Attr-Edge))
+
+    (assert-weighted-edge (table/setproto e Weighted-Edge))))
+
+(defn add-weighted
+  ``
+  Add Weighted Graph features to an existing graph, `g`. If `g` is already a weighted graph, returns `g` unmodified. 
+
+  Existing edges will have Weighted Edge features added, if they did not have them already. Newly weighted edges will be given the default Weighted Edge weight of 1.
+  ``
+  [g]
+  (assert-graph g)
+  (each e (keys (g :adj)) (add-weighted-to-edge e))
+  (cond
+    (weighted-graph? g) g
+
+    (attr-digraph? g)
+    (do (put g :metadata {:weighted true :attr true :digraph true :graph true})
+      (assert-weighted-graph (table/setproto g Weighted-Attr-Digraph)))
+
+    (attr-graph? g)
+    (do (put g :metadata {:weighted true :attr true :graph true})
+      (assert-weighted-graph (table/setproto g Weighted-Attr-Graph)))
+
+    (digraph? g)
+    (do (put g :metadata {:weighted true :digraph true :graph true})
+      (assert-weighted-graph (table/setproto g Weighted-Digraph)))
+
+    (do (put g :metadata {:weighted true :graph true})
+      (assert-weighted-graph (table/setproto g Weighted-Graph)))))
+
+# Functions
 
 (defn nodes
   ``
@@ -139,8 +258,10 @@
   ``
   [g & nodes]
   (assert-graph g)
-  (each node nodes
-    (put (g :nodeset) node true))
+  (each n nodes
+    (if (node? n)
+      (put (g :nodeset) n true)
+      (put (g :nodeset) (node :val n) true)))
   g)
 
 (defn has-node?
@@ -293,4 +414,15 @@
         edge :in (out-edges g node)]
     edge))
 
-(defn update-edge [g edge])
+(defn update-edge
+  ``
+  Update an edge.
+  ``
+  [g edge operation]
+  (assert-graph graph)
+  (assert-edge edge)
+  (let [{:from n1 :to n2 :weight w} edge
+        old-content (get-in g [:adj n1 n2])
+        content
+        (cond
+          (= operation :remove) nil)]))

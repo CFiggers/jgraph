@@ -210,14 +210,14 @@
     @Pair{:key @[:name] :seen true :val @["path.txt"]}
     @Pair{:key @[:accessed] :seen true :val @["2021-01-01"]}
   `
-    [{:accessed "2024-11-11" :type :file}
+    ({:accessed "2024-11-11" :type :file}
      {:name "file.name"
-      :properties [{:accessed "2022-02-02"}
-                   {:tags [:foo :bar :baz]}]
+      :properties ({:accessed "2022-02-02"}
+                   {:tags (:foo :bar :baz)})
       :type :file}
-     [:file
+     (:file
       {:accessed "2021-01-01"
-       :name "path.txt"}]]))
+       :name "path.txt"}))))
 
 (deftest "commplex heterogeneous structure"
   (def heterogeneous-files

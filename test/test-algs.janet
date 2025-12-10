@@ -38,11 +38,11 @@
 
 (deftest "topsort-dfs 2"
   (def dg (digraph {:a [:b :c :d] :b [:d] :c [:d :e]}))
-  (test (topsort-dfs dg) @[:a :b :c :e :d]))
+  (test (topsort-dfs dg) @[:a :c :e :b :d]))
 
 (deftest "topsort-dfs 3"
   (def dg (digraph {:a [:b :c] :b [:d :e] :c [:d :f]}))
-  (test (topsort-dfs dg) @[:a :b :e :c :f :d]))
+  (test (topsort-dfs dg) @[:a :c :f :b :e :d]))
 
 (deftest final-time 
   (print "Elapsed time: " (- (os/clock) start) " seconds"))

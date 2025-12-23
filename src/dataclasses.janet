@@ -24,7 +24,7 @@
                     ,|(interpret-type $ 'values)))
           :main (* "table:" :k? (? ":") :v?)}
         :table:k:keyword:v:boolean)
-  @[[keys :keyword] [values :boolean]])
+      @[[keys :keyword] [values :boolean]])
 
 (test (peg/match
         ~{:k? (? (/ (* "k:" '(to (+ ":" -1)))
@@ -33,25 +33,11 @@
                     ,|(interpret-type $ 'values)))
           :main (* "table:" :k? (? ":") :v?)}
         :table:k:Node:v:boolean)
-  @[[keys [pred node?]] [values :boolean]])
+      @[[keys [pred node?]] [values :boolean]])
 
-(defn- dataclass* [name private & props]
-
-  (def $Name (string/join (map capitalize (string/split "-" name)) "-"))
-
-  (def $name (string/ascii-lower name))
-  (def $assert-name (string "assert-" $name))
-  (def $name? (string $name "?"))
-
-  (def [chopped-props methods]
-    (if (dictionary? (last props))
-      [(tuple/slice props 0 -2)
-       (last props)]
-      [props {}]))
-
-  (def interpreted-props
-    (seq [[n t] :in (partition 2 chopped-props)]
-      (cond
+(defn interpret-props [chopped-props]
+  (tabseq [[n t] :in (partition 2 chopped-props)]
+    n (cond
         (symbol? t)
         [~(pred ,(symbol (string (string/ascii-lower t)) "?")) n (symbol t "-Nil")]
 
@@ -84,6 +70,23 @@
           :keyword [:keyword n :nothing]
           :boolean [:boolean n true]))))
 
+(defn- dataclass* [name private & props]
+
+  # Make names
+  (def $Name (string/join (map capitalize (string/split "-" name)) "-"))
+  (def $name (string/ascii-lower name))
+  (def $assert-name (string "assert-" $name))
+  (def $name? (string $name "?"))
+
+  # Interpret params
+  (def [chopped-props methods]
+    (if (dictionary? (last props))
+      [(tuple/slice props 0 -2)
+       (last props)]
+      [props {}]))
+
+  (def interpreted-props (interpret-props chopped-props))
+
   (def interpreted-methods
     (seq [[k v] :pairs methods]
       [:method k v]))
@@ -99,16 +102,17 @@
           (props
             :type :keyword
             :_name :keyword
-            ,;(catseq [[t n _] :in interpreted-props] [n t]))
+            ,;(catseq [[t n _] :in (values interpreted-props)] [n t]))
           (pred |(,any-proto? $ ,(symbol $Name)))))
 
+  # Make definitions
   ~(upscope
      (,(if private 'def- 'def)
        ,(symbol $Name)
-       (merge-into ,(tabseq [[_ n v] :in [;interpreted-props ;interpreted-methods]] n v)
+       (merge-into ,(tabseq [[_ n v] :in [;(values interpreted-props) ;interpreted-methods]] n v)
                    {:type (keyword ,$Name)
                     :_name (keyword ,$Name)
-                    :schema ,(tabseq [[t n _] :in [;interpreted-props ;interpreted-methods]] n (if (= :tuple (type t)) ~(quote ,t) t))}))
+                    :schema ,(tabseq [[t n _] :in [;(values interpreted-props) ;interpreted-methods]] n (if (= :tuple (type t)) ~(quote ,t) t))}))
 
      (,(if private 'def- 'def)
        ,(symbol $assert-name)
@@ -119,10 +123,10 @@
        (as-macro ,schema/predicate ,schema-def))
 
      (,(if private 'defn- 'defn)
-       ,(symbol $name) [&named ,;(map |(symbol ($ 1)) interpreted-props)]
+       ,(symbol $name) [&named ,;(map |(symbol ($ 1)) (values interpreted-props))]
        (,(symbol $assert-name) (table/setproto
-         ,(tabseq [[_ n _] :in interpreted-props] n (symbol n))
-         ,(symbol $Name))))
+                                 ,(tabseq [[_ n _] :in (values interpreted-props)] n (symbol n))
+                                 ,(symbol $Name))))
 
      (,(if private 'def- 'def)
        ,(symbol (string name "-Nil"))
@@ -148,14 +152,14 @@
 
 (deftest "methods"
   (dataclass Pair :key :array :val :array {:k |(($ :k) 0) :v |(($ :val) 0)})
-  (def p (pair :key "hello" :val "world"))
+  (def p (pair :key @["hello"] :val @["world"]))
   (test (methods p)
         @{:k @short-fn
           :v @short-fn}))
 
 (deftest "schema"
   (dataclass Pair :key :array :val :array {:k |(($ :k) 0) :v |(($ :val) 0)})
-  (def p (pair :key "hello" :val "world"))
+  (def p (pair :key @["hello"] :val @["world"]))
   (test (schema p)
         @{:k :method
           :key :array
@@ -163,42 +167,53 @@
           :val :array}))
 
 (test-macro (dataclass Fact :content :string :source :string)
-  (upscope
-    (def Fact (merge-into @{:content "" :source ""} {:_name (keyword "Fact") :schema @{:content :string :source :string} :type (keyword "Fact")}))
-    (def assert-fact (as-macro @validator (and (or :table :struct) (props :type :keyword :_name :keyword :content :string :source :string) (pred (short-fn (@any-proto? $ Fact))))))
-    (def fact? (as-macro @predicate (and (or :table :struct) (props :type :keyword :_name :keyword :content :string :source :string) (pred (short-fn (@any-proto? $ Fact))))))
-    (defn fact
-      [&named content source]
-      (assert-fact (table/setproto @{:content content :source source} Fact)))
-    (def Fact-Nil (fact))))
+            (upscope
+              (def Fact (merge-into @{:content "" :source ""} {:_name (keyword "Fact") :schema @{:content :string :source :string} :type (keyword "Fact")}))
+              (def assert-fact (as-macro @validator (and (or :table :struct) (props :type :keyword :_name :keyword :content :string :source :string) (pred (short-fn (@any-proto? $ Fact))))))
+              (def fact? (as-macro @predicate (and (or :table :struct) (props :type :keyword :_name :keyword :content :string :source :string) (pred (short-fn (@any-proto? $ Fact))))))
+              (defn fact
+                [&named content source]
+                (assert-fact (table/setproto @{:content content :source source} Fact)))
+              (def Fact-Nil (fact))))
 
 (test-macro (dataclass Pair :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})
-  (upscope
-    (def Pair (merge-into @{:k (short-fn (($ :key) 0)) :key @[] :v (short-fn (($ :val) 0)) :val @[]} {:_name (keyword "Pair") :schema @{ :k :method :key :array :v :method :val :array} :type (keyword "Pair")}))
-    (def assert-pair (as-macro @validator (and (or :table :struct) (props :type :keyword :_name :keyword :key :array :val :array) (pred (short-fn (@any-proto? $ Pair))))))
-    (def pair? (as-macro @predicate (and (or :table :struct) (props :type :keyword :_name :keyword :key :array :val :array) (pred (short-fn (@any-proto? $ Pair))))))
-    (defn pair
-      [&named key val]
-      (assert-pair (table/setproto @{:key key :val val} Pair)))
-    (def Pair-Nil (pair))))
+            (upscope
+              (def Pair (merge-into @{:k (short-fn (($ :key) 0)) :key @[] :v (short-fn (($ :val) 0)) :val @[]} {:_name (keyword "Pair") :schema @{:k :method :key :array :v :method :val :array} :type (keyword "Pair")}))
+              (def assert-pair (as-macro @validator (and (or :table :struct) (props :type :keyword :_name :keyword :val :array :key :array) (pred (short-fn (@any-proto? $ Pair))))))
+              (def pair? (as-macro @predicate (and (or :table :struct) (props :type :keyword :_name :keyword :val :array :key :array) (pred (short-fn (@any-proto? $ Pair))))))
+              (defn pair
+                [&named val key]
+                (assert-pair (table/setproto @{:key key :val val} Pair)))
+              (def Pair-Nil (pair))))
 
-(deftest "typed table"
+(deftest "typed table 0"
   (dataclass Node :val :array)
   (test-macro (dataclass Graph :nodes :table:k:Node)
-    (upscope
-      (def Graph (merge-into @{:nodes @{}} {:_name (keyword "Graph") :schema @{:nodes (quote (and :table (keys (pred node?))))} :type (keyword "Graph")}))
-      (def assert-graph (as-macro @validator (and (or :table :struct) (props :type :keyword :_name :keyword :nodes (and :table (keys (pred node?)))) (pred (short-fn (@any-proto? $ Graph))))))
-      (def graph? (as-macro @predicate (and (or :table :struct) (props :type :keyword :_name :keyword :nodes (and :table (keys (pred node?)))) (pred (short-fn (@any-proto? $ Graph))))))
-      (defn graph
-        [&named nodes]
-        (assert-graph (table/setproto @{:nodes nodes} Graph)))
-      (def Graph-Nil (graph)))))
+              (upscope
+                (def Graph (merge-into @{:nodes @{}} {:_name (keyword "Graph") :schema @{:nodes (quote (and :table (keys (pred node?))))} :type (keyword "Graph")}))
+                (def assert-graph (as-macro @validator (and (or :table :struct) (props :type :keyword :_name :keyword :nodes (and :table (keys (pred node?)))) (pred (short-fn (@any-proto? $ Graph))))))
+                (def graph? (as-macro @predicate (and (or :table :struct) (props :type :keyword :_name :keyword :nodes (and :table (keys (pred node?)))) (pred (short-fn (@any-proto? $ Graph))))))
+                (defn graph
+                  [&named nodes]
+                  (assert-graph (table/setproto @{:nodes nodes} Graph)))
+                (def Graph-Nil (graph)))))
 
-(deftest "typed table"
+(deftest "typed table 1"
   (dataclass Node :val :array)
   (dataclass Graph :nodes :table:k:Node)
+  (test Graph
+        @{:_name :Graph
+          :nodes @{}
+          :schema @{:nodes [and :table [keys [pred node?]]]}
+          :type :Graph}))
 
-  (test (graph :nodes @{(node :val @[]) true})))
+(deftest "typed table 2"
+  (print "ping")
+  (dataclass Node :val :array)
+  (dataclass Graph :nodes :table:v:Node)
+  (test-error (graph :nodes @{:anode 1}) "failed clause (pred node?), predicate node? failed for value 1")
+  (def n (node))
+  (test (graph :nodes @{:anode n}) @{:nodes @{:anode @{}}}))
 
 (deftest "typed array"
   (dataclass Fact :content :string :source :string)
@@ -209,7 +224,7 @@
                 (def knowledge? (as-macro @predicate (and (or :table :struct) (props :type :keyword :_name :keyword :facts (and :array (values (pred fact?)))) (pred (short-fn (@any-proto? $ Knowledge))))))
                 (defn knowledge
                   [&named facts]
-                  (table/setproto @{:facts facts} Knowledge))
+                  (assert-knowledge (table/setproto @{:facts facts} Knowledge)))
                 (def Knowledge-Nil (knowledge)))))
 
 (deftest "dependent macro expanded"
@@ -223,7 +238,7 @@
                 (def person? (as-macro @predicate (and (or :table :struct) (props :type :keyword :_name :keyword :knows (pred knowledge?)) (pred (short-fn (@any-proto? $ Person))))))
                 (defn person
                   [&named knows]
-                  (table/setproto @{:knows knows} Person))
+                  (assert-person (table/setproto @{:knows knows} Person)))
                 (def Person-Nil (person)))))
 
 (deftest "testing dataclass"

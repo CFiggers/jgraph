@@ -169,36 +169,34 @@
   The `dataclass` and `dataclass-` macros must:
   
   - [ ] 1) Correctly return an `upscope` form containing:
-    - [ ] 1.A) A dataclass prototype definition (e.g. `Graph`)
+    - [ ] 1.A) A dataclass prototype definition (e.g. `Graph`) which:
       - [ ] 1.A.I  ) Must have a `:_name` key set to the dataclass name
-      - [ ] 1.A.II ) Must have a `:type` key set to keword of dataclass name 
+      - [ ] 1.A.II ) Must have a `:type` key set to keyword of the dataclass name 
       - [ ] 1.A.III) Must have a `:schema` key set to a struct of original props and methods
       - [ ] 1.A.IV ) Must have each prop set to a default value of the correct type (see 4)
       - [ ] 1.A.V  ) Must have each method passed in assigned (see 5)
-    - [ ] 1.B) A constructor function (e.g. `graph`)
-      - [ ] 1.B.I  ) The constructor function takes keyword args of each prop
-      - [ ] 1.B.II ) The constructor function returns a valid instance of the dataclass with 
-                     each valid passed-in prop assigned
-      - [ ] 1.B.III) If a prop's keyword arg is not passed in, the returned instance does not 
-                     contain that prop directly (when accessed, that prop's key will fall back 
-                     to the default values stored in the dataclass's prototype definition)
-      - [ ] 1.B.IV ) If an invalid value is passed to a prop's keyword arg, the constructor 
-                     raises an error
-      - [ ] 1.B.V  ) If a keyword arg is passed in that is not part of the dataclass's schema, 
-                     it is ignored.
+    - [ ] 1.B) A constructor function (e.g. `graph`) which:
+      - [ ] 1.B.I  ) Takes keyword args corresponding to each prop in the dataclass definition
+      - [ ] 1.B.II ) When an invalid value is passed to a prop's keyword arg, raises an error
+                     (with "validity" of a prop defined by the type of the prop in the 
+                     dataclass's `:schema` definition)
+      - [ ] 1.B.III) Returns a valid instance of the dataclass with each valid passed-in prop 
+                     assigned (with "validity" of an instance defined as passing the 
+                     dataclass's validator/predicate functions; see 1.D and 1.E)
+      - [ ] 1.B.IV ) Ignores keyword args that are not part of the dataclass's schema
     - [ ] 1.C) A nil instance of the dataclass (e.g. `Graph-Nil`)
       - [ ] 1.C.I  ) The nil instance should be equivalent to the instance created by calling 
-                    the constructor function with no keyword arguments
+                     the constructor function with no keyword arguments
     - [ ] 1.D) A validator (e.g. `assert-graph`)
       - [ ] 1.D.I  ) The validator, if called with a valid instance of the dataclass, returns
-                    that instance unchanged as though by the `identity` function 
+                     that instance unchanged as though by the `identity` function 
       - [ ] 1.D.II ) The validator, if called with an invalid instance of the dataclass or any 
-                    other value, raises an error
+                     other value, raises an error
     - [ ] 1.E) A predicate (e.g. `graph?`)
       - [ ] 1.E.I  ) The predicate, if called with a valid instance of the dataclass, returns
                      true 
       - [ ] 1.E.II ) The predicate, if called with an invalid instance of the dataclass or any 
-                    other value, returns false
+                     other value, returns false
   
   - [ ] 2) Correctly require and process a dataclass name
     - [ ] 2.A) When the first argument to the `dataclass` or `dataclass-` macro is not a 
@@ -219,27 +217,45 @@
       - [ ] 2.B.V  ) The predicate (see 1.E) is named with an all lower-case variant of the 
                      name symbol/string, appended with "?" (e.g. `graph?` or `graph-node?`)
 
-  - [ ] 3) Correctly process parent dataclasses
+  - [ ] 3) Correctly require and process a parent dataclass tuple
     - [ ] 3.A) When the second argument to the `dataclass` or `dataclass-` macro is not a 
                tuple, the macro raises an error
-    - [ ] 3.B) When the second argument to the `dataclass` or `dataclass-` macro is not a 
-               tuple containing exclusively symbols, the macro raises an error
-    - [ ] 3.C) When any symbol contained by the second argument of the `dataclass` or 
-               `dataclass-` macro does not refer to the prototype definition of an existing
-               dataclass, the macro raises an error
-    - [ ] 3.D) When the second argument to the `dataclass` or `dataclass-` macro is a tuple 
-               that exclusively contains symbols referring to prototype definitions of 
-               existing dataclasses, the existing dataclass definitions are used as parent 
-               dataclasses in the definition of the new dataclass, as follows:
-      - [ ] 3.D.I  ) Props
-      - [ ] 3.D.II ) Methods
-      - [ ] 3.D.III) Prototype
+    - [ ] 3.B) When the parent dataclass tuple has more than one value, the macro raises an 
+               error 
+    - [ ] 3.C) When the parent dataclass tuple has one value and that value is not a symbol, 
+               the macro raises an error
+    - [ ] 3.D) When the parent dataclass tuple has one symbol value and that symbol does not 
+               refer to the prototype definition of an existing dataclass, the macro raises an 
+               error
+    - [ ] 3.E) When the parent dataclass tuple has one symbol value that refers to the 
+               prototype definition of an existing dataclasses, that existing dataclass 
+               definition is used as a parent dataclass in the definition of the new 
+               dataclass, as follows:
+      - [ ] 3.E.I  ) Props (see 4)
+        - [ ] 3.E.I.a) Props from the parent dataclass are merged into the new prototype 
+                       definition, with child props overriding inherited ones
+        - [ ] 3.E.I.b) Props from the parent dataclasses are merged into the child dataclass's 
+                       `:schema` with child props overriding inherited ones
+      - [ ] 3.E.II ) Methods (see 5)
+        - [ ] 3.E.II.a) Methods from the parent dataclasses are merged into the new prototype 
+                        definition, with child methods overriding inherited ones
+        - [ ] 3.E.II.b) Methods from the parent dataclasses are merged into the child 
+                        dataclass's `:schema` with child methods overriding inherited ones
+      - [ ] 3.E.III) Prototype
+        - [ ] 3.E.III.a) The parent dataclass is set as the next-level prototype of the new 
+                         prototype definition
+        - [ ] 3.E.III.b) Well-formed instances of the new dataclass pass the validation and 
+                         predicate functions of the parent dataclass
+        - [ ] 3.E.III.c) If the parent dataclass is itself the child of yet another dataclass 
+                         defined in this way, the new child will also pass the validation and 
+                         predicate functions of its grandparent dataclass (and great-grand- 
+                         parent dataclass, etc.)
 
   - [ ] 4) Correctly process dataclass prop names and types  
-    - [ ] 4.A) When, in the prop list (defined as all arguments between the tuple indicating 
-               parent dataclasses [see 3] and the optional final, unpaired dictionary 
-               indicating methods [see 5]), any odd value (subsequently "prop name") is not a 
-               keyword or string, the macro raises an error
+    - [ ] 4.A) When, in the prop list (defined as all arguments between the parent dataclass 
+               tuple [see 3] and the optional final, unpaired dictionary indicating methods 
+               [see 5]; of which there may be zero), any ordinally odd value (subsequently 
+               "prop name") is not a keyword or string, the macro raises an error
     - [ ] 4.B) Each prop name should be paired with a value indicating the prop's type, which 
                is handled as follows:
       - [ ] 4.B.I  ) When the value is a keyword: 
@@ -265,10 +281,10 @@
       - [ ] 4.B.IV ) When a value satisfies none of the above conditions, the macro raises an 
                      error
     - [ ] 4.C) Each prop is added to the dataclass's prototype definition as follows:
-      - 4.C.I  ) The prop is added to the dataclass prototype definition as a key with a 
-                 default value based on the prop's type (or a custom default, see 4.B.III)
-      - 4.C.II ) The prop name and type are included as a key and value pair in the `:schema` 
-                 on the dataclass's prototype definition
+      - [ ] 4.C.I  ) The prop is added to the dataclass prototype definition as a key with a 
+                     default value based on the prop's type (or a custom default, see 4.B.III)
+      - [ ] 4.C.II ) The prop name and type are included as a key and value pair in the 
+                     `:schema` on the dataclass's prototype definition (see 1.A.III)
 
   - [ ] 5) Correctly process and assign dataclass methods
     - [ ] 5.A) When a final, unpaired argument is passed to the `dataclass` or `dataclass-` 
@@ -281,9 +297,12 @@
                macro and the argument is a dictionary (table or struct) and all values of the 
                dictionary are functions, the functions are processed and added as methods on 
                the dataclass prototype definition as follows: 
-      - [ ] 5.C.I  )
-      - [ ] 5.C.II )
-      - [ ] 5.C.III)
+      - [ ] 5.C.I  ) Each key in the dictionary is treated as a method name (converted to a 
+                     keyword if necessary)
+      - [ ] 5.C.II ) The method name and keyword type of `:function` are added as a key-value 
+                     pair in the `:schema` on the dataclass's prototype definition
+      - [ ] 5.C.III) The function is assigned to the corresponding method name key in the 
+                     dataclass's prototype definition
  
   - [ ] 6) Correctly define forms in the `upscope` form as public or private
     - [ ] 6.A) When the dataclass is defined using the `dataclass` macro, definitions in the 

@@ -144,11 +144,48 @@
        ,(symbol (string name "-Nil"))
        (,(symbol $name)))))
 
-(defmacro dataclass [name & props]
+(defmacro dataclass [name parent:tuple & props]
+  (assertf (or (symbol? name) (string? name))
+           "The first argument to `dataclass` ('name') must be a symbol or string. Got: %s" name)
+  (assertf (tuple? parent:tuple)
+           "The second argument to `dataclass` ('[parent]') must be a tuple. Got: %q" parent:tuple)
+  (unless (empty? parent:tuple)
+    (assertf (= 1 (length parent:tuple))
+             "The parent tuple passed to `dataclass` ('[parent]') can have at max one element. Got: %q" parent:tuple)
+    (assertf (symbol? (first parent:tuple))
+             "The parent tuple passed to `dataclass` ('[parent]') must contain a symbol. Got: %q" (first parent:tuple))
+    (assertf (every? ((juxt |($ :_name) |($ :type) |($ :schema)) (dyn (first parent:tuple))))
+             "The symbol passed via `dataclass`'s parent tuple ('[parent]') must refer to an existing dataclass definition. Got: %q" (first parent:tuple)))
+  (assertf (or (even? (length props)) (and (odd? (length props)) (dictionary? (last props))))
+           "The props list passed to `dataclass` ('props') must be a series of prop name/type pairs. Got: %q" props)
   (dataclass* name false ;props))
+(set ((dyn 'dataclass) :doc)
+     (string/join
+       ["(dataclass name [parent] & props-list &opt {:method function [...]})"
+        "Define a dataclass."]
+       "\n\n"))
 
-(defmacro dataclass- [name & props]
+(defmacro dataclass-
+  [name parent:tuple & props]
+  (assertf (or (symbol? name) (string? name))
+           "The first argument to `dataclass-` ('name') must be a symbol or string. Got: %s" name)
+  (assertf (tuple? parent:tuple)
+           "The second argument to `dataclass-` must be a tuple. Got: %q" parent:tuple)
+  (unless (empty? parent:tuple)
+    (assertf (= 1 (length parent:tuple))
+             "The parent tuple passed to `dataclass-` ('[parent]') can have at max one element. Got: %q" parent:tuple)
+    (assertf (symbol? (first parent:tuple))
+             "The parent tuple passed to `dataclass-` ('[parent]') must contain a symbol. Got: %q" (first parent:tuple))
+    (assertf (every? ((juxt |($ :_name) |($ :type) |($ :schema)) (dyn (first parent:tuple))))
+             "The symbol passed via `dataclass-`'s parent tuple ('[parent]') must refer to an existing dataclass definition. Got: %q" (first parent:tuple)))
+  (assertf (or (even? (length props)) (and (odd? (length props)) (dictionary? (last props))))
+           "The props list passed to `dataclass-` ('props') must be a series of prop name/type pairs. Got: %q" props)
   (dataclass* name true ;props))
+(set ((dyn 'dataclass-) :doc)
+     (string/join
+       ["(dataclass- name [parent] & props-list &opt {:method function [...]})"
+        "Define a dataclass, but privately."]
+       "\n\n"))
 
 (defn methods [d]
   (let [method-keys (->> (pairs (d :schema))
@@ -170,29 +207,31 @@
   
   - [ ] 1) Correctly return an `upscope` form containing:
     - [ ] 1.A) A dataclass prototype definition (e.g. `Graph`) which:
-      - [ ] 1.A.I  ) Must have a `:_name` key set to the dataclass name
-      - [ ] 1.A.II ) Must have a `:type` key set to keyword of the dataclass name 
-      - [ ] 1.A.III) Must have a `:schema` key set to a struct of original props and methods
-      - [ ] 1.A.IV ) Must have each prop set to a default value of the correct type (see 4)
-      - [ ] 1.A.V  ) Must have each method passed in assigned (see 5)
+      - [ ] 1.A.I  ) Must be a table
+      - [ ] 1.A.II ) Must have a `:_name` key set to the dataclass name                     
+      - [ ] 1.A.III) Must have a `:type` key set to keyword of the dataclass name 
+      - [ ] 1.A.IV ) Must have a `:schema` key set to a struct of original props and methods
+      - [ ] 1.A.V  ) Must have a prototype assigned if a parent dataclass is provided (see 3)
+      - [ ] 1.A.VI ) Must have each prop (see 4) set to a default value of the correct type
+      - [ ] 1.A.VII) Must have each method (see 5) assigned as passed in
     - [ ] 1.B) A constructor function (e.g. `graph`) which:
       - [ ] 1.B.I  ) Takes keyword args corresponding to each prop in the dataclass definition
-      - [ ] 1.B.II ) When an invalid value is passed to a prop's keyword arg, raises an error
+      - [ ] 1.B.II ) Ignores keyword args that are not part of the dataclass's schema
+      - [ ] 1.B.III) When an invalid value is passed to a prop's keyword arg, raises an error
                      (with "validity" of a prop defined by the type of the prop in the 
                      dataclass's `:schema` definition)
-      - [ ] 1.B.III) Returns a valid instance of the dataclass with each valid passed-in prop 
+      - [ ] 1.B.IV ) Returns a valid instance of the dataclass with each valid passed-in prop 
                      assigned (with "validity" of an instance defined as passing the 
                      dataclass's validator/predicate functions; see 1.D and 1.E)
-      - [ ] 1.B.IV ) Ignores keyword args that are not part of the dataclass's schema
     - [ ] 1.C) A nil instance of the dataclass (e.g. `Graph-Nil`)
       - [ ] 1.C.I  ) The nil instance should be equivalent to the instance created by calling 
                      the constructor function with no keyword arguments
-    - [ ] 1.D) A validator (e.g. `assert-graph`)
+    - [ ] 1.D) A validator function (e.g. `assert-graph`)
       - [ ] 1.D.I  ) The validator, if called with a valid instance of the dataclass, returns
                      that instance unchanged as though by the `identity` function 
       - [ ] 1.D.II ) The validator, if called with an invalid instance of the dataclass or any 
                      other value, raises an error
-    - [ ] 1.E) A predicate (e.g. `graph?`)
+    - [ ] 1.E) A predicate function (e.g. `graph?`)
       - [ ] 1.E.I  ) The predicate, if called with a valid instance of the dataclass, returns
                      true 
       - [ ] 1.E.II ) The predicate, if called with an invalid instance of the dataclass or any 
@@ -211,11 +250,12 @@
       - [ ] 2.B.III) The nil instance of the dataclass (see 1.C) is named with a title-cased
                      variant of the name symbol/string, appended with "-Nil" (e.g. `Graph-Nil` 
                      or `Graph-Node-Nil`)
-      - [ ] 2.B.IV ) The validator (see 1.D) is named with an all lower-case variant of the 
-                     name symbol/string, prepended with "assert-" (e.g. `assert-graph` or 
-                     `assert-graph-node`)
-      - [ ] 2.B.V  ) The predicate (see 1.E) is named with an all lower-case variant of the 
-                     name symbol/string, appended with "?" (e.g. `graph?` or `graph-node?`)
+      - [ ] 2.B.IV ) The validator function (see 1.D) is named with an all lower-case variant 
+                     of the name symbol/string, prepended with "assert-" (e.g. `assert-graph` 
+                     or `assert-graph-node`)
+      - [ ] 2.B.V  ) The predicate function (see 1.E) is named with an all lower-case variant 
+                     of the name symbol/string, appended with "?" (e.g. `graph?` or 
+                     `graph-node?`)
 
   - [ ] 3) Correctly require and process a parent dataclass tuple
     - [ ] 3.A) When the second argument to the `dataclass` or `dataclass-` macro is not a 
@@ -260,8 +300,9 @@
                is handled as follows:
       - [ ] 4.B.I  ) When the value is a keyword: 
         - [ ] 4.B.I.a) When the keyword is not a recognized type keyword (`:string`, 
-                       `:buffer`, `:array`, `:tuple`, `:struct`, `:table`, `:number`, 
-                       `:keyword`, `:boolean`, or `:function`), the macro raises an error
+                       `:buffer`, `:array[:{type}] `, `:tuple[:k:{type}][:v:{type}]`, 
+                       `:struct`, `:table`, `:number`, `:keyword`, `:boolean`, or 
+                       `:function`), the macro raises an error
         - [ ] 4.B.I.b) When the keyword is a recognized type keyword, that keyword is the 
                        prop's type
       - [ ] 4.B.II ) When the value is a symbol:
@@ -330,7 +371,7 @@
 
   # 1, 1.A, 1.A.I, 1.A.II, 1.A.III, 1.B, 1.C, 1.D, 1.E
   (test-macro
-    (dataclass Fact :content :string :source :string)
+    (dataclass Fact [] :content :string :source :string)
     (upscope
       (def Fact (merge-into @{:content "" :source ""} {:_name (keyword "Fact") :schema @{:content :string :source :string} :type (keyword "Fact")}))
       (def assert-fact (as-macro @validator (and (or :table :struct) (props :type :keyword :_name :keyword :content :string :source :string) (pred (short-fn (@any-proto? $ Fact))))))
@@ -340,9 +381,27 @@
         (assert-fact (table/setproto @{:content content :source source} Fact)))
       (def Fact-Nil (fact))))
 
+  (def fact-form (macex1 '(dataclass Fact [] :content :string :source :string)))
+
+  # 1.A
+  (test (find |(= 'Fact ($ 1)) (tuple/slice fact-form 1))
+        [def Fact [merge-into @{:content "" :source ""} {:_name [keyword "Fact"] :schema @{:content :string :source :string} :type [keyword "Fact"]}]])
+  # 1.B
+  (test (find |(= 'fact ($ 1)) (tuple/slice fact-form 1))
+        [defn fact [&named content source] [assert-fact [table/setproto @{:content content :source source} Fact]]])
+  # 1.C
+  (test (find |(= 'Fact-Nil ($ 1)) (tuple/slice fact-form 1))
+        [def Fact-Nil [fact]])
+  # 1.D
+  (test (find |(= 'assert-fact ($ 1)) (tuple/slice fact-form 1))
+        [def assert-fact [as-macro @validator [and [or :table :struct] [props :type :keyword :_name :keyword :content :string :source :string] [pred [short-fn [@any-proto? $ Fact]]]]]])
+  # 1.E
+  (test (find |(= 'fact? ($ 1)) (tuple/slice fact-form 1))
+        [def fact? [as-macro @predicate [and [or :table :struct] [props :type :keyword :_name :keyword :content :string :source :string] [pred [short-fn [@any-proto? $ Fact]]]]]])
+
   # 1, 1.A, 1.A.I, 1.A.II, 1.A.III, 1.A.IV 1.B, 1.C, 1.D, 1.E
   (test-macro
-    (dataclass Pair :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})
+    (dataclass Pair [] :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})
     (upscope
       (def Pair (merge-into @{:k (short-fn (($ :key) 0)) :key @[] :v (short-fn (($ :val) 0)) :val @[]} {:_name (keyword "Pair") :schema @{:k :method :key :array :v :method :val :array} :type (keyword "Pair")}))
       (def assert-pair (as-macro @validator (and (or :table :struct) (props :type :keyword :_name :keyword :val :array :key :array) (pred (short-fn (@any-proto? $ Pair))))))
@@ -352,9 +411,27 @@
         (assert-pair (table/setproto @{:key key :val val} Pair)))
       (def Pair-Nil (pair))))
 
+  (def pair-form (macex1 '(dataclass Pair [] :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})))
+
+  # 1.A
+  (test (find |(= 'Pair ($ 1)) (tuple/slice pair-form 1))
+        [def Pair [merge-into @{:k [short-fn [[$ :key] 0]] :key @[] :v [short-fn [[$ :val] 0]] :val @[]} {:_name [keyword "Pair"] :schema @{:k :method :key :array :v :method :val :array} :type [keyword "Pair"]}]])
+  # 1.B
+  (test (find |(= 'pair ($ 1)) (tuple/slice pair-form 1))
+        [defn pair [&named val key] [assert-pair [table/setproto @{:key key :val val} Pair]]])
+  # 1.C
+  (test (find |(= 'Pair-Nil ($ 1)) (tuple/slice pair-form 1))
+        [def Pair-Nil [pair]])
+  # 1.D
+  (test (find |(= 'assert-pair ($ 1)) (tuple/slice pair-form 1))
+        [def assert-pair [as-macro @validator [and [or :table :struct] [props :type :keyword :_name :keyword :val :array :key :array] [pred [short-fn [@any-proto? $ Pair]]]]]])
+  # 1.E
+  (test (find |(= 'pair? ($ 1)) (tuple/slice pair-form 1))
+        [def pair? [as-macro @predicate [and [or :table :struct] [props :type :keyword :_name :keyword :val :array :key :array] [pred [short-fn [@any-proto? $ Pair]]]]]])
+
   # 1, 1.A, 1.A.I, 1.A.II, 1.A.III, 1.B, 1.C, 1.D, 1.E
   (test-macro
-    (dataclass- Private-Fact :content :string :source :string)
+    (dataclass- Private-Fact [] :content :string :source :string)
     (upscope
       (def- Private-Fact (merge-into @{:content "" :source ""} {:_name (keyword "Private-Fact") :schema @{:content :string :source :string} :type (keyword "Private-Fact")}))
       (def- assert-private-fact (as-macro @validator (and (or :table :struct) (props :type :keyword :_name :keyword :content :string :source :string) (pred (short-fn (@any-proto? $ Private-Fact))))))
@@ -364,9 +441,33 @@
         (assert-private-fact (table/setproto @{:content content :source source} Private-Fact)))
       (def- Private-Fact-Nil (private-fact))))
 
+  (def private-fact-form (macex1 '(dataclass- Private-Fact [] :content :string :source :string)))
+
+  # 1.A
+  (test (find |(= 'Private-Fact ($ 1)) (tuple/slice private-fact-form 1))
+        [def-
+         Private-Fact
+         [merge-into
+          @{:content "" :source ""}
+          {:_name [keyword "Private-Fact"]
+           :schema @{:content :string :source :string}
+           :type [keyword "Private-Fact"]}]])
+  # 1.B
+  (test (find |(= 'private-fact ($ 1)) (tuple/slice private-fact-form 1))
+        [defn- private-fact [&named content source] [assert-private-fact [table/setproto @{:content content :source source} Private-Fact]]])
+  # 1.C
+  (test (find |(= 'Private-Fact-Nil ($ 1)) (tuple/slice private-fact-form 1))
+        [def- Private-Fact-Nil [private-fact]])
+  # 1.D
+  (test (find |(= 'assert-private-fact ($ 1)) (tuple/slice private-fact-form 1))
+        [def- assert-private-fact [as-macro @validator [and [or :table :struct] [props :type :keyword :_name :keyword :content :string :source :string] [pred [short-fn [@any-proto? $ Private-Fact]]]]]])
+  # 1.E
+  (test (find |(= 'private-fact? ($ 1)) (tuple/slice private-fact-form 1))
+        [def- private-fact? [as-macro @predicate [and [or :table :struct] [props :type :keyword :_name :keyword :content :string :source :string] [pred [short-fn [@any-proto? $ Private-Fact]]]]]])
+
   # 1, 1.A, 1.A.I, 1.A.II, 1.A.III, 1.A.IV 1.B, 1.C, 1.D, 1.E
   (test-macro
-    (dataclass- Private-Pair :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})
+    (dataclass- Private-Pair [] :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})
     (upscope
       (def- Private-Pair (merge-into @{:k (short-fn (($ :key) 0)) :key @[] :v (short-fn (($ :val) 0)) :val @[]} {:_name (keyword "Private-Pair") :schema @{:k :method :key :array :v :method :val :array} :type (keyword "Private-Pair")}))
       (def- assert-private-pair (as-macro @validator (and (or :table :struct) (props :type :keyword :_name :keyword :val :array :key :array) (pred (short-fn (@any-proto? $ Private-Pair))))))
@@ -374,7 +475,25 @@
       (defn- private-pair
         [&named val key]
         (assert-private-pair (table/setproto @{:key key :val val} Private-Pair)))
-      (def- Private-Pair-Nil (private-pair)))))
+      (def- Private-Pair-Nil (private-pair))))
+
+  (def private-pair-form (macex1 '(dataclass- Private-Pair [] :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})))
+
+  # 1.A
+  (test (find |(= 'Private-Pair ($ 1)) (tuple/slice private-pair-form 1))
+        [def- Private-Pair [merge-into @{:k [short-fn [[$ :key] 0]] :key @[] :v [short-fn [[$ :val] 0]] :val @[]} {:_name [keyword "Private-Pair"] :schema @{:k :method :key :array :v :method :val :array} :type [keyword "Private-Pair"]}]])
+  # 1.B
+  (test (find |(= 'private-pair ($ 1)) (tuple/slice private-pair-form 1))
+        [defn- private-pair [&named val key] [assert-private-pair [table/setproto @{:key key :val val} Private-Pair]]])
+  # 1.C
+  (test (find |(= 'Private-Pair-Nil ($ 1)) (tuple/slice private-pair-form 1))
+        [def- Private-Pair-Nil [private-pair]])
+  # 1.D
+  (test (find |(= 'assert-private-pair ($ 1)) (tuple/slice private-pair-form 1))
+        [def- assert-private-pair [as-macro @validator [and [or :table :struct] [props :type :keyword :_name :keyword :val :array :key :array] [pred [short-fn [@any-proto? $ Private-Pair]]]]]])
+  # 1.E
+  (test (find |(= 'private-pair? ($ 1)) (tuple/slice private-pair-form 1))
+        [def- private-pair? [as-macro @predicate [and [or :table :struct] [props :type :keyword :_name :keyword :val :array :key :array] [pred [short-fn [@any-proto? $ Private-Pair]]]]]]))
 
 (deftest "testing dataclass"
   :should ``
@@ -403,12 +522,9 @@
                     any other value, returns false
   ``
 
-  (dataclass Fact
-             :content :string
-             :source :string)
-  (dataclass- Private-Fact
-              :content :string
-              :source :string)
+  (dataclass Fact [] :content :string :source :string)
+  (dataclass- Private-Fact [] :content :string :source :string)
+
   # 1.A 
   (test Fact
         @{:_name :Fact
@@ -491,7 +607,7 @@
 
 (deftest "`methods` auxiliary function"
   :should "When passed an instance of a dataclass with methods, return a table containing the methods"
-  (dataclass Pair :key :array :val :array {:k |(($ :k) 0) :v |(($ :val) 0)})
+  (dataclass Pair [] :key :array :val :array {:k |(($ :k) 0) :v |(($ :val) 0)})
   (def p (pair :key @["hello"] :val @["world"]))
   (test (methods p)
         @{:k @short-fn
@@ -499,7 +615,7 @@
 
 (deftest "`schema` auxiliary function"
   :should "When passed an instance of a dataclass, return a table of the dataclass's schema"
-  (dataclass Pair :key :array :val :array {:k |(($ :k) 0) :v |(($ :val) 0)})
+  (dataclass Pair [] :key :array :val :array {:k |(($ :k) 0) :v |(($ :val) 0)})
   (def p (pair :key @["hello"] :val @["world"]))
   (test (schema p)
         @{:k :method
@@ -509,8 +625,8 @@
 
 
 (deftest "typed table 0"
-  (dataclass Node :val :array)
-  (test-macro (dataclass Graph :nodes :table:k:Node)
+  (dataclass Node [] :val :array)
+  (test-macro (dataclass Graph [] :nodes :table:k:Node)
               (upscope
                 (def Graph (merge-into @{:nodes @{}} {:_name (keyword "Graph") :schema @{:nodes (quote (and :table (keys (pred node?))))} :type (keyword "Graph")}))
                 (def assert-graph (as-macro @validator (and (or :table :struct) (props :type :keyword :_name :keyword :nodes (and :table (keys (pred node?)))) (pred (short-fn (@any-proto? $ Graph))))))
@@ -521,8 +637,8 @@
                 (def Graph-Nil (graph)))))
 
 (deftest "typed table 1"
-  (dataclass Node :val :array)
-  (dataclass Graph :nodes :table:k:Node)
+  (dataclass Node [] :val :array)
+  (dataclass Graph [] :nodes :table:k:Node)
   (test Graph
         @{:_name :Graph
           :nodes @{}
@@ -530,15 +646,15 @@
           :type :Graph}))
 
 (deftest "typed table 2"
-  (dataclass Node :val :array)
-  (dataclass Graph :nodes :table:v:Node)
+  (dataclass Node [] :val :array)
+  (dataclass Graph [] :nodes :table:v:Node)
   (test-error (graph :nodes @{:anode 1}) "failed clause (pred node?), predicate node? failed for value 1")
   (def n (node))
   (test (graph :nodes @{:anode n}) @{:nodes @{:anode @{}}}))
 
 (deftest "typed array"
-  (dataclass Fact :content :string :source :string)
-  (test-macro (dataclass Knowledge :facts :array:Fact)
+  (dataclass Fact [] :content :string :source :string)
+  (test-macro (dataclass Knowledge [] :facts :array:Fact)
               (upscope
                 (def Knowledge (merge-into @{:facts @[]} {:_name (keyword "Knowledge") :schema @{:facts (quote (and :array (values (pred fact?))))} :type (keyword "Knowledge")}))
                 (def assert-knowledge (as-macro @validator (and (or :table :struct) (props :type :keyword :_name :keyword :facts (and :array (values (pred fact?)))) (pred (short-fn (@any-proto? $ Knowledge))))))
@@ -549,10 +665,10 @@
                 (def Knowledge-Nil (knowledge)))))
 
 (deftest "dependent macro expanded"
-  (dataclass Fact :content :string :source :string)
-  (dataclass Knowledge :facts :array:Fact)
+  (dataclass Fact [] :content :string :source :string)
+  (dataclass Knowledge [] :facts :array:Fact)
   (def None (knowledge :facts @[]))
-  (test-macro (dataclass Person :knows Knowledge)
+  (test-macro (dataclass Person [] :knows Knowledge)
               (upscope
                 (def Person (merge-into @{:knows Knowledge-Nil} {:_name (keyword "Person") :schema @{:knows (quote (pred knowledge?))} :type (keyword "Person")}))
                 (def assert-person (as-macro @validator (and (or :table :struct) (props :type :keyword :_name :keyword :knows (pred knowledge?)) (pred (short-fn (@any-proto? $ Person))))))
@@ -565,9 +681,9 @@
 
 (deftest "dependent definition"
 
-  (dataclass Fact :content :string :source :string)
+  (dataclass Fact [] :content :string :source :string)
 
-  (dataclass Knowledge :facts :array:Fact)
+  (dataclass Knowledge [] :facts :array:Fact)
 
   (def None (knowledge :facts @[]))
 
@@ -587,7 +703,7 @@
           :schema @{:facts [and :array [values [pred fact?]]]}
           :type :Knowledge})
 
-  (dataclass Person :name :string :knows Knowledge)
+  (dataclass Person [] :name :string :knows Knowledge)
 
   (test Person
         @{:_name :Person

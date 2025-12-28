@@ -207,20 +207,20 @@
   
   - [ ] 1) Correctly return an `upscope` form containing:
     - [ ] 1.A) A dataclass prototype definition (e.g. `Graph`) which:
-      - [ ] 1.A.I  ) Must be a table
-      - [ ] 1.A.II ) Must have a `:_name` key set to the dataclass name                     
-      - [ ] 1.A.III) Must have a `:type` key set to keyword of the dataclass name 
-      - [ ] 1.A.IV ) Must have a `:schema` key set to a struct of original props and methods
-      - [ ] 1.A.V  ) Must have a prototype assigned if a parent dataclass is provided (see 3)
-      - [ ] 1.A.VI ) Must have each prop (see 4) set to a default value of the correct type
+      - [x] 1.A.I  ) Must be a table
+      - [x] 1.A.II ) Must have a `:_name` key set to the dataclass name                     
+      - [x] 1.A.III) Must have a `:type` key set to keyword of the dataclass name 
+      - [x] 1.A.IV ) Must have a `:schema` key set to a struct of original props and methods
+      - [x] 1.A.V  ) Must have a prototype assigned if a parent dataclass is provided (see 3)
+      - [x] 1.A.VI ) Must have each prop (see 4) set to a default value of the correct type
       - [ ] 1.A.VII) Must have each method (see 5) assigned as passed in
     - [ ] 1.B) A constructor function (e.g. `graph`) which:
-      - [ ] 1.B.I  ) Takes keyword args corresponding to each prop in the dataclass definition
-      - [ ] 1.B.II ) Ignores keyword args that are not part of the dataclass's schema
-      - [ ] 1.B.III) When an invalid value is passed to a prop's keyword arg, raises an error
+      - [x] 1.B.I  ) Takes keyword args corresponding to each prop in the dataclass definition
+      - [x] 1.B.II ) Ignores keyword args that are not part of the dataclass's schema
+      - [x] 1.B.III) When an invalid value is passed to a prop's keyword arg, raises an error
                      (with "validity" of a prop defined by the type of the prop in the 
                      dataclass's `:schema` definition)
-      - [ ] 1.B.IV ) Returns a valid instance of the dataclass with each valid passed-in prop 
+      - [x] 1.B.IV ) Returns a valid instance of the dataclass with each valid passed-in prop 
                      assigned (with "validity" of an instance defined as passing the 
                      dataclass's validator/predicate functions; see 1.D and 1.E)
     - [ ] 1.C) A nil instance of the dataclass (e.g. `Graph-Nil`)
@@ -389,6 +389,7 @@
   # 1.B
   (test (find |(= 'fact ($ 1)) (tuple/slice fact-form 1))
         [defn fact [&named content source] [assert-fact [table/setproto @{:content content :source source} Fact]]])
+
   # 1.C
   (test (find |(= 'Fact-Nil ($ 1)) (tuple/slice fact-form 1))
         [def Fact-Nil [fact]])
@@ -494,6 +495,96 @@
   # 1.E
   (test (find |(= 'private-pair? ($ 1)) (tuple/slice private-pair-form 1))
         [def- private-pair? [as-macro @predicate [and [or :table :struct] [props :type :keyword :_name :keyword :val :array :key :array] [pred [short-fn [@any-proto? $ Private-Pair]]]]]]))
+
+(deftest "Dataclass definition requirements"
+  :should ``
+  The `dataclass` and `dataclass-` macros must:
+  
+  - [x] 1) Correctly return an `upscope` form containing:
+    - [x] 1.A) A prototype definition (e.g. `Graph`)
+      - [x] 1.A.I  ) Must have a `:_name` key set to the dataclass name
+      - [x] 1.A.II ) Must have a `:type` key set to keword of dataclass name 
+      - [x] 1.A.III) Must have a `:schema` key set to a struct of original props and methods
+      - [x] 1.A.IV ) Must have each prop set to a default value of the correct type
+      - [x] 1.A.V  ) Must have each method passed in assigned
+    - [x] 1.B) A constructor function (e.g. `graph`)
+    - [x] 1.C) A nil instance of the dataclass (e.g. `Graph-Nil`)
+    - [x] 1.D) A validator (e.g. `assert-graph`)
+    - [x] 1.E) A predicate (e.g. `graph?`)
+  ``
+
+  (dataclass Fact [] :content :string :source :string)
+  (def fact-form (macex1 '(dataclass- Fact [] :content :string :source :string)))
+
+  # 1.A.I
+  (test (table? Fact) true)
+  # 1.A.II 
+  (test (truthy? (Fact :_name)) true)
+  # 1.A.III 
+  (test (truthy? (Fact :type)) true)
+  # 1.A.IV 
+  (test (truthy? (Fact :schema)) true)
+  # 1.A.V 
+  (test (nil? (table/getproto Fact)) true)
+  # 1.A.VI 
+  (test (truthy? (Fact :content)) true)
+  (test (= "" (Fact :content)) true)
+  (test (truthy? (Fact :source)) true)
+  (test (= "" (Fact :source)) true)
+
+  # 1.B.I 
+  (test (has-value? ((find |(= 'fact ($ 1)) (tuple/slice fact-form 1)) 2) 'content) true)
+  (test (has-value? ((find |(= 'fact ($ 1)) (tuple/slice fact-form 1)) 2) 'source) true)
+  # 1.B.II 
+  (test (nil? ((fact :bogus true) :bogus)) true)
+  # 1.B.III 
+  (test-error (fact :content :errors) "failed clause :string, expected value of type string, got :errors")
+  # 1.B.IV 
+  (test (assert-fact (fact :content "test" :source "test")) @{:content "test" :source "test"})
+  (test (fact? (fact :content "test" :source "test")) true)
+
+  # 1.C.I
+  (test (deep= Fact-Nil (fact)) true)
+
+  # 1.D.I
+  (test (assert-fact (fact :content "test" :source "test")) @{:content "test" :source "test"})
+  # 1.D.II
+  (test-error (assert-fact @{:bogus true}) "failed clause :keyword, expected value of type keyword, got nil")
+
+  # 1.E.I
+  (test (= true (fact? (fact :content "test" :source "test"))) true)
+  # 1.E.II
+  (test (= false (fact? @{:bogus true})) true)
+
+  (dataclass Pair [] :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})
+  (def pair-form (macex1 '(dataclass Pair [] :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})))
+
+  # 1.A.I
+  # 1.A.II
+  # 1.A.III
+  # 1.A.IV
+  # 1.A.V
+  # 1.A.VI
+  # 1.A.VII
+
+  # 1.B.I 
+  # 1.B.I 
+  # 1.B.I 
+  # 1.B.I 
+
+  # 1.C.I
+
+  # 1.D.I
+  # 1.D.II
+
+  # 1.E.I
+  # 1.E.II
+
+  (dataclass- Private-Fact [] :content :string :source :string)
+  (def private-fact-form (macex1 '(dataclass- Private-Fact [] :content :string :source :string)))
+
+  (dataclass- Private-Pair [] :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})
+  (def private-pair-form (macex1 '(dataclass- Private-Pair [] :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)}))))
 
 (deftest "testing dataclass"
   :should ``

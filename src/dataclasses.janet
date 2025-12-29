@@ -17,22 +17,22 @@
 
 (test (interpret-type "Node" keys) [@keys [pred node?]])
 
-(test (peg/match
-        ~{:k? (? (/ (* "k:" '(to (+ ":" -1)))
-                    ,|(interpret-type $ 'keys)))
-          :v? (? (/ (* "v:" '(to -1))
-                    ,|(interpret-type $ 'values)))
-          :main (* "table:" :k? (? ":") :v?)}
-        :table:k:keyword:v:boolean)
+(test (->> :table:k:keyword:v:boolean
+           (peg/match
+             ~{:k? (? (/ (* "k:" '(to (+ ":" -1)))
+                         ,|(interpret-type $ 'keys)))
+               :v? (? (/ (* "v:" '(to -1))
+                         ,|(interpret-type $ 'values)))
+               :main (* "table:" :k? (? ":") :v?)}))
       @[[keys :keyword] [values :boolean]])
 
-(test (peg/match
-        ~{:k? (? (/ (* "k:" '(to (+ ":" -1)))
-                    ,|(interpret-type $ 'keys)))
-          :v? (? (/ (* "v:" '(to -1))
-                    ,|(interpret-type $ 'values)))
-          :main (* "table:" :k? (? ":") :v?)}
-        :table:k:Node:v:boolean)
+(test (->> :table:k:Node:v:boolean
+           (peg/match
+             ~{:k? (? (/ (* "k:" '(to (+ ":" -1)))
+                         ,|(interpret-type $ 'keys)))
+               :v? (? (/ (* "v:" '(to -1))
+                         ,|(interpret-type $ 'values)))
+               :main (* "table:" :k? (? ":") :v?)}))
       @[[keys [pred node?]] [values :boolean]])
 
 (defn interpret-props [chopped-props]
@@ -205,16 +205,16 @@
   :should ``
   The `dataclass` and `dataclass-` macros must:
   
-  - [ ] 1) Correctly return an `upscope` form containing:
-    - [ ] 1.A) A dataclass prototype definition (e.g. `Graph`) which:
+  - [x] 1) Correctly return an `upscope` form containing:
+    - [x] 1.A) A dataclass prototype definition (e.g. `Graph`) which:
       - [x] 1.A.I  ) Must be a table
       - [x] 1.A.II ) Must have a `:_name` key set to the dataclass name                     
       - [x] 1.A.III) Must have a `:type` key set to keyword of the dataclass name 
       - [x] 1.A.IV ) Must have a `:schema` key set to a struct of original props and methods
       - [x] 1.A.V  ) Must have a prototype assigned if a parent dataclass is provided (see 3)
       - [x] 1.A.VI ) Must have each prop (see 4) set to a default value of the correct type
-      - [ ] 1.A.VII) Must have each method (see 5) assigned as passed in
-    - [ ] 1.B) A constructor function (e.g. `graph`) which:
+      - [x] 1.A.VII) Must have each method (see 5) assigned as passed in
+    - [x] 1.B) A constructor function (e.g. `graph`) which:
       - [x] 1.B.I  ) Takes keyword args corresponding to each prop in the dataclass definition
       - [x] 1.B.II ) Ignores keyword args that are not part of the dataclass's schema
       - [x] 1.B.III) When an invalid value is passed to a prop's keyword arg, raises an error
@@ -223,18 +223,18 @@
       - [x] 1.B.IV ) Returns a valid instance of the dataclass with each valid passed-in prop 
                      assigned (with "validity" of an instance defined as passing the 
                      dataclass's validator/predicate functions; see 1.D and 1.E)
-    - [ ] 1.C) A nil instance of the dataclass (e.g. `Graph-Nil`)
-      - [ ] 1.C.I  ) The nil instance should be equivalent to the instance created by calling 
+    - [x] 1.C) A nil instance of the dataclass (e.g. `Graph-Nil`)
+      - [x] 1.C.I  ) The nil instance should be equivalent to the instance created by calling 
                      the constructor function with no keyword arguments
-    - [ ] 1.D) A validator function (e.g. `assert-graph`)
-      - [ ] 1.D.I  ) The validator, if called with a valid instance of the dataclass, returns
+    - [x] 1.D) A validator function (e.g. `assert-graph`)
+      - [x] 1.D.I  ) The validator, if called with a valid instance of the dataclass, returns
                      that instance unchanged as though by the `identity` function 
-      - [ ] 1.D.II ) The validator, if called with an invalid instance of the dataclass or any 
+      - [x] 1.D.II ) The validator, if called with an invalid instance of the dataclass or any 
                      other value, raises an error
-    - [ ] 1.E) A predicate function (e.g. `graph?`)
-      - [ ] 1.E.I  ) The predicate, if called with a valid instance of the dataclass, returns
+    - [x] 1.E) A predicate function (e.g. `graph?`)
+      - [x] 1.E.I  ) The predicate, if called with a valid instance of the dataclass, returns
                      true 
-      - [ ] 1.E.II ) The predicate, if called with an invalid instance of the dataclass or any 
+      - [x] 1.E.II ) The predicate, if called with an invalid instance of the dataclass or any 
                      other value, returns false
   
   - [ ] 2) Correctly require and process a dataclass name
@@ -352,21 +352,14 @@
                `upscope` form use `def-` and `defn-` (aka private definitions)
 ``)
 
-(deftest "Basic dataclass definitions"
+(deftest "Basic dataclass definitions: 1.x"
   :should ``
-  The `dataclass` and `dataclass-` macros must:
-  
-  - [x] 1) Correctly return an `upscope` form containing:
-    - [x] 1.A) A prototype definition (e.g. `Graph`)
-      - [x] 1.A.I  ) Must have a `:_name` key set to the dataclass name
-      - [x] 1.A.II ) Must have a `:type` key set to keword of dataclass name 
-      - [x] 1.A.III) Must have a `:schema` key set to a struct of original props and methods
-      - [x] 1.A.IV ) Must have each prop set to a default value of the correct type
-      - [x] 1.A.V  ) Must have each method passed in assigned
-    - [x] 1.B) A constructor function (e.g. `graph`)
+  - [ ] 1) Correctly return an `upscope` form containing:
+    - [x] 1.A) A dataclass prototype definition (e.g. `Graph`) which:
+    - [x] 1.B) A constructor function (e.g. `graph`) which:
     - [x] 1.C) A nil instance of the dataclass (e.g. `Graph-Nil`)
-    - [x] 1.D) A validator (e.g. `assert-graph`)
-    - [x] 1.E) A predicate (e.g. `graph?`)
+    - [x] 1.D) A validator function (e.g. `assert-graph`)
+    - [x] 1.E) A predicate function (e.g. `graph?`)
   ``
 
   # 1, 1.A, 1.A.I, 1.A.II, 1.A.III, 1.B, 1.C, 1.D, 1.E
@@ -496,21 +489,39 @@
   (test (find |(= 'private-pair? ($ 1)) (tuple/slice private-pair-form 1))
         [def- private-pair? [as-macro @predicate [and [or :table :struct] [props :type :keyword :_name :keyword :val :array :key :array] [pred [short-fn [@any-proto? $ Private-Pair]]]]]]))
 
-(deftest "Dataclass definition requirements"
+(deftest "Dataclass definition requirements: 1.x.x)"
   :should ``
-  The `dataclass` and `dataclass-` macros must:
-  
   - [x] 1) Correctly return an `upscope` form containing:
-    - [x] 1.A) A prototype definition (e.g. `Graph`)
-      - [x] 1.A.I  ) Must have a `:_name` key set to the dataclass name
-      - [x] 1.A.II ) Must have a `:type` key set to keword of dataclass name 
-      - [x] 1.A.III) Must have a `:schema` key set to a struct of original props and methods
-      - [x] 1.A.IV ) Must have each prop set to a default value of the correct type
-      - [x] 1.A.V  ) Must have each method passed in assigned
-    - [x] 1.B) A constructor function (e.g. `graph`)
+    - [x] 1.A) A dataclass prototype definition (e.g. `Graph`) which:
+      - [x] 1.A.I  ) Must be a table
+      - [x] 1.A.II ) Must have a `:_name` key set to the dataclass name                     
+      - [x] 1.A.III) Must have a `:type` key set to keyword of the dataclass name 
+      - [x] 1.A.IV ) Must have a `:schema` key set to a struct of original props and methods
+      - [x] 1.A.V  ) Must have a prototype assigned if a parent dataclass is provided (see 3)
+      - [x] 1.A.VI ) Must have each prop (see 4) set to a default value of the correct type
+      - [x] 1.A.VII) Must have each method (see 5) assigned as passed in
+    - [x] 1.B) A constructor function (e.g. `graph`) which:
+      - [x] 1.B.I  ) Takes keyword args corresponding to each prop in the dataclass definition
+      - [x] 1.B.II ) Ignores keyword args that are not part of the dataclass's schema
+      - [x] 1.B.III) When an invalid value is passed to a prop's keyword arg, raises an error
+                     (with "validity" of a prop defined by the type of the prop in the 
+                     dataclass's `:schema` definition)
+      - [x] 1.B.IV ) Returns a valid instance of the dataclass with each valid passed-in prop 
+                     assigned (with "validity" of an instance defined as passing the 
+                     dataclass's validator/predicate functions; see 1.D and 1.E)
     - [x] 1.C) A nil instance of the dataclass (e.g. `Graph-Nil`)
-    - [x] 1.D) A validator (e.g. `assert-graph`)
-    - [x] 1.E) A predicate (e.g. `graph?`)
+      - [x] 1.C.I  ) The nil instance should be equivalent to the instance created by calling 
+                     the constructor function with no keyword arguments
+    - [x] 1.D) A validator function (e.g. `assert-graph`)
+      - [x] 1.D.I  ) The validator, if called with a valid instance of the dataclass, returns
+                     that instance unchanged as though by the `identity` function 
+      - [x] 1.D.II ) The validator, if called with an invalid instance of the dataclass or any 
+                     other value, raises an error
+    - [x] 1.E) A predicate function (e.g. `graph?`)
+      - [x] 1.E.I  ) The predicate, if called with a valid instance of the dataclass, returns
+                     true 
+      - [x] 1.E.II ) The predicate, if called with an invalid instance of the dataclass or any 
+                     other value, returns false
   ``
 
   (dataclass Fact [] :content :string :source :string)
@@ -560,141 +571,183 @@
   (def pair-form (macex1 '(dataclass Pair [] :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})))
 
   # 1.A.I
-  # 1.A.II
-  # 1.A.III
-  # 1.A.IV
-  # 1.A.V
-  # 1.A.VI
-  # 1.A.VII
+  (test (table? Pair) true)
+  # 1.A.II 
+  (test (truthy? (Pair :_name)) true)
+  # 1.A.III 
+  (test (truthy? (Pair :type)) true)
+  # 1.A.IV 
+  (test (truthy? (Pair :schema)) true)
+  # 1.A.V 
+  (test (nil? (table/getproto Pair)) true)
+  # 1.A.VI 
+  (test (truthy? (Pair :key)) true)
+  (test (deep= @[] (Pair :key)) true)
+  (test (truthy? (Pair :val)) true)
+  (test (deep= @[] (Pair :val)) true)
+  # 1.A.VII 
+  (test (truthy? (Pair :k)) true)
+  (test (function? (Pair :k)) true)
+  (test (truthy? (Pair :v)) true)
+  (test (function? (Pair :k)) true)
 
   # 1.B.I 
-  # 1.B.I 
-  # 1.B.I 
-  # 1.B.I 
+  (test (has-value? ((find |(= 'pair ($ 1)) (tuple/slice pair-form 1)) 2) 'key) true)
+  (test (has-value? ((find |(= 'pair ($ 1)) (tuple/slice pair-form 1)) 2) 'val) true)
+  # 1.B.II 
+  (test (nil? ((pair :bogus true) :bogus)) true)
+  # 1.B.III 
+  (test-error (pair :key :errors) "failed clause :array, expected value of type array, got :errors")
+  # 1.B.IV 
+  (test (assert-pair (pair :key @[] :val @[])) @{:key @[] :val @[]})
+  (test (pair? (pair :key @[] :val @[])) true)
 
   # 1.C.I
+  (test (deep= Pair-Nil (pair)) true)
 
   # 1.D.I
+  (test (assert-pair (pair :key @[] :val @[])) @{:key @[] :val @[]})
   # 1.D.II
+  (test-error (assert-pair @{:bogus true}) "failed clause :keyword, expected value of type keyword, got nil")
 
   # 1.E.I
+  (test (= true (pair? (pair :key @[] :val @[]))) true)
   # 1.E.II
+  (test (= false (pair? @{:bogus true})) true)
 
   (dataclass- Private-Fact [] :content :string :source :string)
   (def private-fact-form (macex1 '(dataclass- Private-Fact [] :content :string :source :string)))
 
-  (dataclass- Private-Pair [] :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})
-  (def private-pair-form (macex1 '(dataclass- Private-Pair [] :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)}))))
+  # 1.A.I
+  (test (table? Private-Fact) true)
+  # 1.A.II 
+  (test (truthy? (Private-Fact :_name)) true)
+  # 1.A.III 
+  (test (truthy? (Private-Fact :type)) true)
+  # 1.A.IV 
+  (test (truthy? (Private-Fact :schema)) true)
+  # 1.A.V 
+  (test (nil? (table/getproto Private-Fact)) true)
+  # 1.A.VI 
+  (test (truthy? (Private-Fact :content)) true)
+  (test (= "" (Private-Fact :content)) true)
+  (test (truthy? (Private-Fact :source)) true)
+  (test (= "" (Private-Fact :source)) true)
 
-(deftest "testing dataclass"
-  :should ``
-  The `dataclass` and `dataclass-` macros must:
-  
-  - [ ] 1) Correctly return an `upscope` form containing:
-    - [x] 1.A) A prototype definition (e.g. `Graph`)
-    - [x] 1.B) A constructor function (e.g. `graph`)
-      - [x] 1.B.I  ) The constructor instance takes keyword args of each prop
-      - [x] 1.B.II ) If a prop is not passed in, the returned instance falls back to 
-                     the default values in the prototype
-    - [x] 1.C) A nil instance of the dataclass (e.g. `Graph-Nil`)
-      - [x] 1.C.I  ) The nil instance should contain no keys itself, but have the prototype 
-                     assigned so that all keys fall back to the prototype
-      - [x] 1.C.II ) The nil instance should be equivalent to the instance created
-                     by calling the constructor function with no arguments
-    - [x] 1.D) A validator (e.g. `assert-graph`)
-      - [x] 1.D.I  ) The validator, if called with a valid instance of the dataclass, returns
-                     that instance unchanged as though by the `identity` function 
-      - [x] 1.D.II ) The validator, if called with an invalid instance of the dataclass or 
-                     any other value, raises an error
-    - [x] 1.E) A predicate (e.g. `graph?`)
-      - [x] 1.E.I ) The predicate, if called with a valid instance of the dataclass, returns
-                     true 
-      - [x] 1.E.II) The predicate, if called with an invalid instance of the dataclass or 
-                    any other value, returns false
+  # 1.B.I 
+  (test (has-value? ((find |(= 'private-fact ($ 1)) (tuple/slice private-fact-form 1)) 2) 'content) true)
+  (test (has-value? ((find |(= 'private-fact ($ 1)) (tuple/slice private-fact-form 1)) 2) 'source) true)
+  # 1.B.II 
+  (test (nil? ((private-fact :bogus true) :bogus)) true)
+  # 1.B.III 
+  (test-error (private-fact :content :errors) "failed clause :string, expected value of type string, got :errors")
+  # 1.B.IV 
+  (test (assert-private-fact (private-fact :content "test" :source "test")) @{:content "test" :source "test"})
+  (test (private-fact? (private-fact :content "test" :source "test")) true)
+
+  # 1.C.I
+  (test (deep= Private-Fact-Nil (private-fact)) true)
+
+  # 1.D.I
+  (test (assert-private-fact (private-fact :content "test" :source "test")) @{:content "test" :source "test"})
+  # 1.D.II
+  (test-error (assert-private-fact @{:bogus true}) "failed clause :keyword, expected value of type keyword, got nil")
+
+  # 1.E.I
+  (test (= true (private-fact? (private-fact :content "test" :source "test"))) true)
+  # 1.E.II
+  (test (= false (private-fact? @{:bogus true})) true)
+
+  (dataclass- Private-Pair [] :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})
+  (def private-pair-form (macex1 '(dataclass- Private-Pair [] :key :array :val :array {:k |(($ :key) 0) :v |(($ :val) 0)})))
+
+  # 1.A.I
+  (test (table? Private-Pair) true)
+  # 1.A.II 
+  (test (truthy? (Private-Pair :_name)) true)
+  # 1.A.III 
+  (test (truthy? (Private-Pair :type)) true)
+  # 1.A.IV 
+  (test (truthy? (Private-Pair :schema)) true)
+  # 1.A.V 
+  (test (nil? (table/getproto Private-Pair)) true)
+  # 1.A.VI 
+  (test (truthy? (Private-Pair :key)) true)
+  (test (deep= @[] (Private-Pair :key)) true)
+  (test (truthy? (Private-Pair :val)) true)
+  (test (deep= @[] (Private-Pair :val)) true)
+  # 1.A.VII 
+  (test (truthy? (Private-Pair :k)) true)
+  (test (function? (Private-Pair :k)) true)
+  (test (truthy? (Private-Pair :v)) true)
+  (test (function? (Private-Pair :k)) true)
+
+  # 1.B.I 
+  (test (has-value? ((find |(= 'private-pair ($ 1)) (tuple/slice private-pair-form 1)) 2) 'key) true)
+  (test (has-value? ((find |(= 'private-pair ($ 1)) (tuple/slice private-pair-form 1)) 2) 'val) true)
+  # 1.B.II 
+  (test (nil? ((private-pair :bogus true) :bogus)) true)
+  # 1.B.III 
+  (test-error (private-pair :key :errors) "failed clause :array, expected value of type array, got :errors")
+  # 1.B.IV 
+  (test (assert-private-pair (private-pair :key @[] :val @[])) @{:key @[] :val @[]})
+  (test (private-pair? (private-pair :key @[] :val @[])) true)
+
+  # 1.C.I
+  (test (deep= Pair-Nil (private-pair)) true)
+
+  # 1.D.I
+  (test (assert-private-pair (private-pair :key @[] :val @[])) @{:key @[] :val @[]})
+  # 1.D.II
+  (test-error (assert-private-pair @{:bogus true}) "failed clause :keyword, expected value of type keyword, got nil")
+
+  # 1.E.I
+  (test (= true (private-pair? (private-pair :key @[] :val @[]))) true)
+  # 1.E.II
+  (test (= false (private-pair? @{:bogus true})) true))
+
+(deftest "Dataclass requirements: 2.x.x"
+  :should `` 
+  - [ ] 2) Correctly require and process a dataclass name
+    - [ ] 2.A) When the first argument to the `dataclass` or `dataclass-` macro is not a 
+               symbol or string, the macro raises an error 
+    - [ ] 2.B) When the first argument to `dataclass` or `dataclass-` macro is a symbol or 
+               string, the symbol or string is used to create names for the forms returned in 
+               the `upscope` form as follows: 
+      - [ ] 2.B.I  ) The prototype definition (see 1.A) is named with a title-cased variant of 
+                     the name symbol/string (e.g. `Graph` or 'Graph-Node')
+      - [ ] 2.B.II ) The constructor function (see 1.B) is named with an all lower-case
+                     variant of the name symbol/string (e.g. `graph` or `graph-node`)
+      - [ ] 2.B.III) The nil instance of the dataclass (see 1.C) is named with a title-cased
+                     variant of the name symbol/string, appended with "-Nil" (e.g. `Graph-Nil` 
+                     or `Graph-Node-Nil`)
+      - [ ] 2.B.IV ) The validator function (see 1.D) is named with an all lower-case variant 
+                     of the name symbol/string, prepended with "assert-" (e.g. `assert-graph` 
+                     or `assert-graph-node`)
+      - [ ] 2.B.V  ) The predicate function (see 1.E) is named with an all lower-case variant 
+                     of the name symbol/string, appended with "?" (e.g. `graph?` or 
+                     `graph-node?`)
   ``
 
-  (dataclass Fact [] :content :string :source :string)
-  (dataclass- Private-Fact [] :content :string :source :string)
+  (def fact-form (macex1 '(dataclass Fact [] :content :string :source :string)))
+  (def private-fact-form (macex1 '(dataclass- Private-Fact [] :content :string :source :string)))
 
-  # 1.A 
-  (test Fact
-        @{:_name :Fact
-          :content ""
-          :schema @{:content :string :source :string}
-          :source ""
-          :type :Fact})
-  (test Private-Fact
-        @{:_name :Private-Fact
-          :content ""
-          :schema @{:content :string :source :string}
-          :source ""
-          :type :Private-Fact})
-  # 1.B
-  (test fact @fact)
-  (test private-fact @private-fact)
-  # 1.B.I
-  (test (fact :content "This is a fact" :source "My brain")
-        @{:content "This is a fact"
-          :source "My brain"})
-  (test (private-fact :content "This is a private fact" :source "My brain")
-        @{:content "This is a private fact"
-          :source "My brain"})
-  # 1.B.II
-  (test (table/proto-flatten (fact :content "This is a fact" :source "My brain"))
-        @{:_name :Fact
-          :content "This is a fact"
-          :schema @{:content :string :source :string}
-          :source "My brain"
-          :type :Fact})
-  (test (table/proto-flatten (private-fact :content "This is a fact" :source "My brain"))
-        @{:_name :Private-Fact
-          :content "This is a fact"
-          :schema @{:content :string :source :string}
-          :source "My brain"
-          :type :Private-Fact})
-  # 1.C, 1.C.I
-  (test Fact-Nil @{})
-  (test Private-Fact-Nil @{})
-  # 1.C.I
-  (test (table/getproto Fact-Nil)
-        @{:_name :Fact
-          :content ""
-          :schema @{:content :string :source :string}
-          :source ""
-          :type :Fact})
-  (test (table/getproto Private-Fact-Nil)
-        @{:_name :Private-Fact
-          :content ""
-          :schema @{:content :string :source :string}
-          :source ""
-          :type :Private-Fact})
-  # 1.C.II
-  (test (deep= (fact) Fact-Nil) true)
-  (test (deep= (private-fact) Private-Fact-Nil) true)
-  # 1.D 
-  (test assert-fact @validate)
-  (test assert-private-fact @validate)
-  # 1.D.I
-  (test (assert-fact (fact :content "This is a fact" :source "My brain"))
-        @{:content "This is a fact"
-          :source "My brain"})
-  (test (assert-private-fact (private-fact :content "This is a private fact" :source "My brain"))
-        @{:content "This is a private fact"
-          :source "My brain"})
-  # 1.D.II
-  (test-error (assert-fact :not-a-fact) "failed clause (or :table :struct), choice failed: :not-a-fact")
-  (test-error (assert-private-fact :not-a-fact) "failed clause (or :table :struct), choice failed: :not-a-fact")
-  # 1.E
-  (test fact? @check)
-  (test private-fact? @check)
-  # 1.E.I
-  (test (fact? (fact :content "This is a fact" :source "My brain"))
-        true)
-  (test (private-fact? (fact :content "This is a fact" :source "My brain"))
-        false)
-  # 1.E.II 
-  (test (fact? :not-a-fact) false)
-  (test (private-fact? :not-a-fact) false))
+  # 2.A 
+  # Macros error at compile time not run time, so these are not compatible with judge's test-error macro
+  (trust (dataclass 123 []) "error: src/dataclasses.janet:709:1: compile error: (macro) bad slot #1, expected string, symbol, keyword or buffer, got 123")
+  (trust (dataclass- 123 []) "error: src/dataclasses.janet:709:1: compile error: (macro) bad slot #1, expected string, symbol, keyword or buffer, got 123")
+  # 2.B
+  # 2.B.I 
+  (test true true)
+  # 2.B.II
+  (test true true)
+  # 2.B.III 
+  (test true true)
+  # 2.B.IV
+  (test true true)
+  # 2.B.V
+  (test true true))
+
 
 (deftest "`methods` auxiliary function"
   :should "When passed an instance of a dataclass with methods, return a table containing the methods"
@@ -713,7 +766,6 @@
           :key :array
           :v :method
           :val :array}))
-
 
 (deftest "typed table 0"
   (dataclass Node [] :val :array)
@@ -768,7 +820,6 @@
                   [&named knows]
                   (assert-person (table/setproto @{:knows knows} Person)))
                 (def Person-Nil (person)))))
-
 
 (deftest "dependent definition"
 

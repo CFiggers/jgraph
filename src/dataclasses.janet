@@ -71,7 +71,22 @@
           :boolean [:boolean n true]
           :function [:function n identity]))))
 
-(defn- dataclass* [name private & props]
+(defn- dataclass* [name parent:tuple private & props]
+
+  # Asserts
+  (assertf (or (symbol? name) (string? name))
+           "The first argument to `dataclass%s` ('name') must be a symbol or string. Got: %q" (if private "-" "") name)
+  (assertf (tuple? parent:tuple)
+           "The second argument to `dataclass%s` ('[parent]') must be a tuple. Got: %q" (if private "-" "") parent:tuple)
+  (unless (empty? parent:tuple)
+    (assertf (= 1 (length parent:tuple))
+             "The parent tuple passed to `dataclass%s` ('[parent]') can have at max one element. Got: %q" (if private "-" "") parent:tuple)
+    (assertf (symbol? (first parent:tuple))
+             "The parent tuple passed to `dataclass%s` ('[parent]') must contain a symbol. Got: %q" (if private "-" "") (first parent:tuple))
+    (assertf (every? ((juxt |($ :_name) |($ :type) |($ :schema)) (dyn (first parent:tuple))))
+             "The symbol passed via `dataclass%s`'s parent tuple ('[parent]') must refer to an existing dataclass definition. Got: %q" (if private "-" "") (first parent:tuple)))
+  (assertf (or (even? (length props)) (and (odd? (length props)) (dictionary? (last props))))
+           "The props list passed to `dataclass%s` ('props') must be a series of prop name/type pairs. Got: %q" props)
 
   (assertf (or (= :symbol (type name)) (= :string (type name)))
            "Dataclasses must be named using either a symbol or string. Got: %q" name)
@@ -145,20 +160,7 @@
        (,(symbol $name)))))
 
 (defmacro dataclass [name parent:tuple & props]
-  (assertf (or (symbol? name) (string? name))
-           "The first argument to `dataclass` ('name') must be a symbol or string. Got: %s" name)
-  (assertf (tuple? parent:tuple)
-           "The second argument to `dataclass` ('[parent]') must be a tuple. Got: %q" parent:tuple)
-  (unless (empty? parent:tuple)
-    (assertf (= 1 (length parent:tuple))
-             "The parent tuple passed to `dataclass` ('[parent]') can have at max one element. Got: %q" parent:tuple)
-    (assertf (symbol? (first parent:tuple))
-             "The parent tuple passed to `dataclass` ('[parent]') must contain a symbol. Got: %q" (first parent:tuple))
-    (assertf (every? ((juxt |($ :_name) |($ :type) |($ :schema)) (dyn (first parent:tuple))))
-             "The symbol passed via `dataclass`'s parent tuple ('[parent]') must refer to an existing dataclass definition. Got: %q" (first parent:tuple)))
-  (assertf (or (even? (length props)) (and (odd? (length props)) (dictionary? (last props))))
-           "The props list passed to `dataclass` ('props') must be a series of prop name/type pairs. Got: %q" props)
-  (dataclass* name false ;props))
+  (dataclass* name parent:tuple false ;props))
 (set ((dyn 'dataclass) :doc)
      (string/join
        ["(dataclass name [parent] & props-list &opt {:method function [...]})"
@@ -167,20 +169,7 @@
 
 (defmacro dataclass-
   [name parent:tuple & props]
-  (assertf (or (symbol? name) (string? name))
-           "The first argument to `dataclass-` ('name') must be a symbol or string. Got: %s" name)
-  (assertf (tuple? parent:tuple)
-           "The second argument to `dataclass-` must be a tuple. Got: %q" parent:tuple)
-  (unless (empty? parent:tuple)
-    (assertf (= 1 (length parent:tuple))
-             "The parent tuple passed to `dataclass-` ('[parent]') can have at max one element. Got: %q" parent:tuple)
-    (assertf (symbol? (first parent:tuple))
-             "The parent tuple passed to `dataclass-` ('[parent]') must contain a symbol. Got: %q" (first parent:tuple))
-    (assertf (every? ((juxt |($ :_name) |($ :type) |($ :schema)) (dyn (first parent:tuple))))
-             "The symbol passed via `dataclass-`'s parent tuple ('[parent]') must refer to an existing dataclass definition. Got: %q" (first parent:tuple)))
-  (assertf (or (even? (length props)) (and (odd? (length props)) (dictionary? (last props))))
-           "The props list passed to `dataclass-` ('props') must be a series of prop name/type pairs. Got: %q" props)
-  (dataclass* name true ;props))
+  (dataclass* name parent:tuple true ;props))
 (set ((dyn 'dataclass-) :doc)
      (string/join
        ["(dataclass- name [parent] & props-list &opt {:method function [...]})"
@@ -237,23 +226,23 @@
       - [x] 1.E.II ) The predicate, if called with an invalid instance of the dataclass or any 
                      other value, returns false
   
-  - [ ] 2) Correctly require and process a dataclass name
-    - [ ] 2.A) When the first argument to the `dataclass` or `dataclass-` macro is not a 
+  - [x] 2) Correctly require and process a dataclass name
+    - [x] 2.A) When the first argument to the `dataclass` or `dataclass-` macro is not a 
                symbol or string, the macro raises an error 
-    - [ ] 2.B) When the first argument to `dataclass` or `dataclass-` macro is a symbol or 
+    - [x] 2.B) When the first argument to `dataclass` or `dataclass-` macro is a symbol or 
                string, the symbol or string is used to create names for the forms returned in 
                the `upscope` form as follows: 
-      - [ ] 2.B.I  ) The prototype definition (see 1.A) is named with a title-cased variant of 
+      - [x] 2.B.I  ) The prototype definition (see 1.A) is named with a title-cased variant of 
                      the name symbol/string (e.g. `Graph` or 'Graph-Node')
-      - [ ] 2.B.II ) The constructor function (see 1.B) is named with an all lower-case
+      - [x] 2.B.II ) The constructor function (see 1.B) is named with an all lower-case
                      variant of the name symbol/string (e.g. `graph` or `graph-node`)
-      - [ ] 2.B.III) The nil instance of the dataclass (see 1.C) is named with a title-cased
+      - [x] 2.B.III) The nil instance of the dataclass (see 1.C) is named with a title-cased
                      variant of the name symbol/string, appended with "-Nil" (e.g. `Graph-Nil` 
                      or `Graph-Node-Nil`)
-      - [ ] 2.B.IV ) The validator function (see 1.D) is named with an all lower-case variant 
+      - [x] 2.B.IV ) The validator function (see 1.D) is named with an all lower-case variant 
                      of the name symbol/string, prepended with "assert-" (e.g. `assert-graph` 
                      or `assert-graph-node`)
-      - [ ] 2.B.V  ) The predicate function (see 1.E) is named with an all lower-case variant 
+      - [x] 2.B.V  ) The predicate function (see 1.E) is named with an all lower-case variant 
                      of the name symbol/string, appended with "?" (e.g. `graph?` or 
                      `graph-node?`)
 
@@ -708,45 +697,51 @@
 
 (deftest "Dataclass requirements: 2.x.x"
   :should `` 
-  - [ ] 2) Correctly require and process a dataclass name
-    - [ ] 2.A) When the first argument to the `dataclass` or `dataclass-` macro is not a 
+  - [x] 2) Correctly require and process a dataclass name
+    - [x] 2.A) When the first argument to the `dataclass` or `dataclass-` macro is not a 
                symbol or string, the macro raises an error 
-    - [ ] 2.B) When the first argument to `dataclass` or `dataclass-` macro is a symbol or 
+    - [x] 2.B) When the first argument to `dataclass` or `dataclass-` macro is a symbol or 
                string, the symbol or string is used to create names for the forms returned in 
                the `upscope` form as follows: 
-      - [ ] 2.B.I  ) The prototype definition (see 1.A) is named with a title-cased variant of 
+      - [x] 2.B.I  ) The prototype definition (see 1.A) is named with a title-cased variant of 
                      the name symbol/string (e.g. `Graph` or 'Graph-Node')
-      - [ ] 2.B.II ) The constructor function (see 1.B) is named with an all lower-case
+      - [x] 2.B.II ) The constructor function (see 1.B) is named with an all lower-case
                      variant of the name symbol/string (e.g. `graph` or `graph-node`)
-      - [ ] 2.B.III) The nil instance of the dataclass (see 1.C) is named with a title-cased
+      - [x] 2.B.III) The nil instance of the dataclass (see 1.C) is named with a title-cased
                      variant of the name symbol/string, appended with "-Nil" (e.g. `Graph-Nil` 
                      or `Graph-Node-Nil`)
-      - [ ] 2.B.IV ) The validator function (see 1.D) is named with an all lower-case variant 
+      - [x] 2.B.IV ) The validator function (see 1.D) is named with an all lower-case variant 
                      of the name symbol/string, prepended with "assert-" (e.g. `assert-graph` 
                      or `assert-graph-node`)
-      - [ ] 2.B.V  ) The predicate function (see 1.E) is named with an all lower-case variant 
+      - [x] 2.B.V  ) The predicate function (see 1.E) is named with an all lower-case variant 
                      of the name symbol/string, appended with "?" (e.g. `graph?` or 
                      `graph-node?`)
   ``
 
-  (def fact-form (macex1 '(dataclass Fact [] :content :string :source :string)))
-  (def private-fact-form (macex1 '(dataclass- Private-Fact [] :content :string :source :string)))
+  (def dataclass-name "Fact")
+
+  (def fact-form (macex1 ~(dataclass ,(symbol dataclass-name) [] :content :string :source :string)))
+  (def private-fact-form (macex1 ~(dataclass- ,(symbol "Private-" dataclass-name) [] :content :string :source :string)))
 
   # 2.A 
-  # Macros error at compile time not run time, so these are not compatible with judge's test-error macro
-  (trust (dataclass 123 []) "error: src/dataclasses.janet:709:1: compile error: (macro) bad slot #1, expected string, symbol, keyword or buffer, got 123")
-  (trust (dataclass- 123 []) "error: src/dataclasses.janet:709:1: compile error: (macro) bad slot #1, expected string, symbol, keyword or buffer, got 123")
+  (test-error (dataclass* 123 [] false) "The first argument to `dataclass` ('name') must be a symbol or string. Got: 123")
+  (test-error (dataclass* 123 [] true) "The first argument to `dataclass-` ('name') must be a symbol or string. Got: 123")
   # 2.B
   # 2.B.I 
-  (test true true)
+  (test (truthy? (find |(= (symbol dataclass-name) ($ 1)) (tuple/slice fact-form 1))) true)
+  (test (truthy? (find |(= (symbol "Private-" dataclass-name) ($ 1)) (tuple/slice private-fact-form 1))) true)
   # 2.B.II
-  (test true true)
+  (test (truthy? (find |(= (symbol (string/ascii-lower dataclass-name)) ($ 1)) (tuple/slice fact-form 1))) true)
+  (test (truthy? (find |(= (symbol "private-" (string/ascii-lower dataclass-name)) ($ 1)) (tuple/slice private-fact-form 1))) true)
   # 2.B.III 
-  (test true true)
+  (test (truthy? (find |(= (symbol dataclass-name "-Nil") ($ 1)) (tuple/slice fact-form 1))) true)
+  (test (truthy? (find |(= (symbol "Private-" dataclass-name "-Nil") ($ 1)) (tuple/slice private-fact-form 1))) true)
   # 2.B.IV
-  (test true true)
+  (test (truthy? (find |(= (symbol "assert-" (string/ascii-lower dataclass-name)) ($ 1)) (tuple/slice fact-form 1))) true)
+  (test (truthy? (find |(= (symbol "assert-" "private-" (string/ascii-lower dataclass-name)) ($ 1)) (tuple/slice private-fact-form 1))) true)
   # 2.B.V
-  (test true true))
+  (test (truthy? (find |(= (symbol (string/ascii-lower dataclass-name) "?") ($ 1)) (tuple/slice fact-form 1))) true)
+  (test (truthy? (find |(= (symbol "private-" (string/ascii-lower dataclass-name) "?") ($ 1)) (tuple/slice private-fact-form 1))) true))
 
 
 (deftest "`methods` auxiliary function"

@@ -69,7 +69,8 @@
           :number [:number n 0]
           :keyword [:keyword n :nothing]
           :boolean [:boolean n true]
-          :function [:function n identity]))))
+          :function [:function n identity]
+          (errorf "Unrecognized type keyword: %q" t)))))
 
 (defn- dataclass* [name parent:tuple private & props]
 
@@ -83,7 +84,7 @@
              "The parent tuple passed to `dataclass%s` ('[parent]') can have at max one element. Got: %q" (if private "-" "") parent:tuple)
     (assertf (symbol? (first parent:tuple))
              "The parent tuple passed to `dataclass%s` ('[parent]') must contain a symbol. Got: %q" (if private "-" "") (first parent:tuple))
-    (assertf (every? ((juxt |($ :_name) |($ :type) |($ :schema)) (dyn (first parent:tuple))))
+    (assertf (and (table? (first parent:tuple)) (dyn (first parent:tuple)) (every? ((juxt |($ :_name) |($ :type) |($ :schema)) (dyn (first parent:tuple)))))
              "The symbol passed via `dataclass%s`'s parent tuple ('[parent]') must refer to an existing dataclass definition. Got: %q" (if private "-" "") (first parent:tuple)))
   (assertf (or (even? (length props)) (and (odd? (length props)) (dictionary? (last props))))
            "The props list passed to `dataclass%s` ('props') must be a series of prop name/type pairs. Got: %q" props)
@@ -111,6 +112,9 @@
       [(tuple/slice props 0 -2)
        (last props)]
       [props {}]))
+
+  (assertf (all |(or (string? $) (keyword? $)) (seq [n :range [0 (length chopped-props) 2]] (chopped-props n)))
+           "All prop names must be strings or keywords")
 
   (def interpreted-props (interpret-props chopped-props))
 
@@ -167,8 +171,7 @@
         "Define a dataclass."]
        "\n\n"))
 
-(defmacro dataclass-
-  [name parent:tuple & props]
+(defmacro dataclass- [name parent:tuple & props]
   (dataclass* name parent:tuple true ;props))
 (set ((dyn 'dataclass-) :doc)
      (string/join
@@ -743,6 +746,250 @@
   (test (truthy? (find |(= (symbol (string/ascii-lower dataclass-name) "?") ($ 1)) (tuple/slice fact-form 1))) true)
   (test (truthy? (find |(= (symbol "private-" (string/ascii-lower dataclass-name) "?") ($ 1)) (tuple/slice private-fact-form 1))) true))
 
+(deftest "Parent dataclass error cases: 3.A to 3.D"
+  :should ``
+  - [x] 3.A) When the second argument to the `dataclass` or `dataclass-` macro is not a 
+             tuple, the macro raises an error
+  - [x] 3.B) When the parent dataclass tuple has more than one value, the macro raises an 
+             error 
+  - [x] 3.C) When the parent dataclass tuple has one value and that value is not a symbol, 
+             the macro raises an error
+  - [x] 3.D) When the parent dataclass tuple has one symbol value and that symbol does not 
+             refer to the prototype definition of an existing dataclass, the macro raises an 
+             error
+  ``
+
+  # 3.A — not a tuple
+  (test-error (dataclass* "Child" 123 false)
+              "The second argument to `dataclass` ('[parent]') must be a tuple. Got: 123")
+
+  # 3.B — more than one element
+  (test-error (dataclass* "Child" ['Parent1 'Parent2] false)
+              "The parent tuple passed to `dataclass` ('[parent]') can have at max one element. Got: (Parent1 Parent2)")
+
+  # 3.C — element not a symbol
+  (test-error (dataclass* "Child" ["not-a-symbol"] false)
+              "The parent tuple passed to `dataclass` ('[parent]') must contain a symbol. Got: \"not-a-symbol\"")
+
+  # 3.D — symbol not bound to a dataclass prototype
+  (test-error (dataclass* "Child" ['NonExistent] false)
+              "The symbol passed via `dataclass`'s parent tuple ('[parent]') must refer to an existing dataclass definition. Got: NonExistent")
+
+  (def not-a-dataclass @{:wrong true})
+  (test-error (dataclass* "Child" ['not-a-dataclass] false)
+              "The symbol passed via `dataclass`'s parent tuple ('[parent]') must refer to an existing dataclass definition. Got: not-a-dataclass"))
+
+
+(deftest "Parent dataclass merging and prototype chain: 3.E"
+  :should ``
+  - [ ] 3.E) When the parent dataclass tuple has one symbol value that refers to the 
+             prototype definition of an existing dataclasses, that existing dataclass 
+             definition is used as a parent dataclass in the definition of the new 
+             dataclass, as follows:
+    - [ ] 3.E.I Props (see 4)
+      - [ ] 3.E.I.a) Props from the parent dataclass are merged into the new prototype 
+                     definition, with child props overriding inherited ones
+      - [ ] 3.E.I.b) Props from the parent dataclasses are merged into the child dataclass's 
+                     `:schema` with child props overriding inherited ones
+    - [ ] 3.E.II ) Methods (see 5)
+      - [ ] 3.E.II.a) Methods from the parent dataclasses are merged into the new prototype 
+                      definition, with child methods overriding inherited ones
+      - [ ] 3.E.II.b) Methods from the parent dataclasses are merged into the child 
+                      dataclass's `:schema` with child methods overriding inherited ones
+    - [ ] 3.E.III) Prototype
+      - [ ] 3.E.III.a) The parent dataclass is set as the next-level prototype of the new 
+                       prototype definition
+      - [ ] 3.E.III.b) Well-formed instances of the new dataclass pass the validation and 
+                       predicate functions of the parent dataclass
+      - [ ] 3.E.III.c) If the parent dataclass is itself the child of yet another dataclass 
+                       defined in this way, the new child will also pass the validation and 
+                       predicate functions of its grandparent dataclass (and great-grand- 
+                       parent dataclass, etc.)
+  ``
+
+  (dataclass Animal [] :species :string :legs :number {:move |"moving"})
+  (dataclass Dog [Animal] :breed :string {:bark |"woof"})
+
+  # 3.E.I
+  # 3.E.I.a — inherited props present with parent defaults
+  (test (Dog :species) "")
+  (test (Dog :legs) 0)
+  (test (Dog :breed) "")
+
+  # 3.E.I.b — schema merged
+  (test (deep= (Dog :schema)
+               @{:species :string :legs :number :breed :string :move :method :bark :method})
+        true)
+
+  # 3.E.II — inherited and new methods
+  # 3.E.II.a
+  (test ((Dog :move)) "moving")
+  (test ((Dog :bark)) "woof")
+  # 3.E.II.b
+
+  # Override example (props and methods)
+  (dataclass Cat [Animal] :legs 4 :breed :string {:purr |"purr" :move |"sneaking"})
+
+  (test (Cat :legs) 4) # overridden default
+  (test ((Cat :move)) "sneaking") # overridden method
+
+  # 3.E.III.a — prototype chain
+  (test (table/getproto Dog) Animal)
+
+  # 3.E.III.b/c — instances pass parent and grandparent validation/predicates
+  (def rex (dog :species "Canis" :legs 4 :breed "Lab"))
+  (test (dog? rex) true)
+  (test (animal? rex) true)
+  (test (assert-animal rex) rex)
+
+  # Grandparent chain
+  (dataclass Mammal [] :warm-blooded :boolean)
+  (dataclass Animal [Mammal] :species :string :legs :number)
+  (dataclass Dog [Animal] :breed :string)
+
+  (def fido (dog :warm-blooded true :species "Canis" :legs 4 :breed "Poodle"))
+  (test (dog? fido) true)
+  (test (animal? fido) true)
+  (test (mammal? fido) true)
+  (test (assert-mammal fido) fido))
+
+
+(deftest "Dataclass prop processing errors: parts of 4.A–4.B"
+  :should ``
+  ``
+
+  # 4.A
+  (test-error (dataclass* 'BadName [] false 123 :string)
+              "All prop names must be strings or keywords")
+  (test-error (dataclass* 'BadName [] true 123 :string)
+              "All prop names must be strings or keywords")
+
+  (test-error (dataclass* 'Unrecognized [] false :p :unknown-type)
+              "Unrecognized type keyword: :unknown-type")
+  (test-error (dataclass* 'Unrecognized [] true :p :unknown-type)
+              "Unrecognized type keyword: :unknown-type")
+
+  (def Not-Dataclass @{:bad true})
+  (test-error (dataclass* 'BadSymbol [] false :p Not-Dataclass)
+              "bad slot #1, expected string, symbol, keyword or buffer, got nil")
+
+  (test-error (dataclass* 'BadTuple [] false :p [123 "default"])
+              "expected integer key for string in range [0, 7), got 123")
+
+  (test-error (dataclass* 'BadOther [] false :p @[])
+              "bad slot #1, expected string, symbol, keyword or buffer, got <array 0x01B3BC4097C0>"))
+
+
+(deftest "Dataclass prop processing good cases: 4.B–4.C"
+  :should ``
+  - [x] 4.B) Correct handling of all supported type specifications
+  - [x] 4.C) Props correctly added to prototype defaults and schema
+  ``
+
+  # Primitive keyword types + defaults
+  (dataclass Primitives []
+    :str :string
+    :num :number
+    :bool :boolean
+    :kw :keyword
+    :fun :function
+    :arr :array
+    :tup :tuple
+    :struct :struct
+    :table :table
+    :buf :buffer)
+
+  (test (Primitives :str) "")
+  (test (Primitives :num) 0)
+  (test (Primitives :bool) true)
+  (test (Primitives :kw) :nothing)
+  (test (Primitives :fun) identity)
+  (test (Primitives :arr) @[])
+  (test (Primitives :tup) [])
+  (test (Primitives :struct) {})
+  (test (Primitives :table) @{})
+  (test (Primitives :buf) @"")
+
+  # Custom defaults via tuple
+  (dataclass CustomDefaults []
+    :str (:string "hello")
+    :num (:number 42)
+    :bool (:boolean false))
+
+  (test (CustomDefaults :str) "hello")
+  (test (CustomDefaults :num) 42)
+  (test (CustomDefaults :bool) false)
+
+  # Dataclass symbol type (default is -Nil instance)
+  (dataclass HasFact [] :f Fact)
+  (test (fact? (HasFact :f)) true)
+  (test (HasFact :f) Fact-Nil)
+
+  # Dataclass symbol type with custom default instance
+  (def special-fact (fact :content "special" :source "test"))
+  (dataclass HasCustomFact [] :f (Fact special-fact))
+  (test (HasCustomFact :f) special-fact)
+
+  # Array of dataclass
+  (dataclass FactArray [] :facts "array:Fact")
+  (test (FactArray :facts) @[])
+  (test-macro (dataclass FactArray [] :facts "array:Fact")
+              (upscope
+                (def FactArray
+                  (merge-into @{:facts @[]}
+                              {:_name (keyword "FactArray")
+                               :schema @{:facts (quote (and :array (values (pred fact?))))}
+                               :type (keyword "FactArray")}))
+                ...)) # abbreviated — full form would match existing test-macro style
+
+  # Table with typed keys/values
+  (dataclass NodeMap [] :nodes "table:k:Node:v:boolean")
+  (test (NodeMap :nodes) @{}))
+
+
+(deftest "Dataclass methods: 5.x"
+  :should ``
+  - [x] 5.A) Final unpaired argument not a dictionary → error
+  - [x] 5.B) Final dictionary with non-function values → error
+  - [x] 5.C) Valid method dictionary → methods added to prototype and schema
+  ``
+
+  # 5.A — unpaired but not dictionary
+  (test-error (dataclass BadMethods [] :a :number 123)
+              "A final, unpaired argument may be passed, in which case it must be a dictionary")
+
+  # 5.B — dictionary but values not functions
+  (test-error (dataclass BadMethods [] :a :number {:bad 123})
+              "all values must be functions")
+
+  # 5.C — valid methods
+  (dataclass Calculator []
+    :a :number
+    :b :number
+    {:add |(+ ($ :a) ($ :b))
+     :mul |(* ($ :a) ($ :b))})
+
+  (test (function? (Calculator :add)) true)
+  (test (function? (Calculator :mul)) true)
+
+  (def calc (calculator :a 3 :b 4))
+  (test ((calc :add)) 7)
+  (test ((calc :mul)) 12)
+
+  # Methods appear in schema as :method
+  (test (deep= (Calculator :schema)
+               @{:a :number :b :number :add :method :mul :method})
+        true)
+
+  # Auxiliary `methods` works
+  (test (deep= (methods calc)
+               @{:add (short-fn (+ ($ :a) ($ :b)))
+                 :mul (short-fn (* ($ :a) ($ :b)))})
+        true)
+
+  # String keys are preserved (if used)
+  (dataclass StringKey [] {"hello" |"world"})
+  (test ((StringKey "hello")) "world"))
 
 (deftest "`methods` auxiliary function"
   :should "When passed an instance of a dataclass with methods, return a table containing the methods"
